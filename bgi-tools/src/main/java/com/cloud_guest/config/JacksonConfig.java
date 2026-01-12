@@ -20,10 +20,10 @@ public class JacksonConfig {
         ObjectMapper mapper = new ObjectMapper();
 
         // 1. 下划线命名（userId → user_id）
-        mapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+        //mapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
 
         // 2. 忽略 null 字段
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        //mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
         // 3. Java 8 时间支持
         mapper.registerModule(new JavaTimeModule());

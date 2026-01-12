@@ -1,3 +1,7 @@
+import cn.hutool.http.HttpUtil;
+import cn.hutool.json.JSONUtil;
+import com.cloud_guest.domain.CronDto;
+import com.cloud_guest.result.Result;
 import com.cloud_guest.utils.DateUtils;
 import com.cronutils.model.Cron;
 import com.cronutils.model.CronType;
@@ -55,8 +59,17 @@ public class Main {
         LocalDateTime endTime = LocalDateTime.of(2026, 1, 12, 18, 51, 28);
         long start = DateUtils.LocalDateTimeTolong(startTime);
         long end = DateUtils.LocalDateTimeTolong(endTime);
-        Long nearestExecutionAfter = findNearestExecutionAfter("0 0 15 * * ? ", start, end);
-        LocalDateTime localDateTime = DateUtils.longToLocalDateTime(nearestExecutionAfter);
-        System.out.println(localDateTime);
+        String cronExpression = "0 0 15 * * ? ";
+        //Long nearestExecutionAfter = findNearestExecutionAfter(cronExpression, start, end);
+        //LocalDateTime localDateTime = DateUtils.longToLocalDateTime(nearestExecutionAfter);
+        //System.out.println(localDateTime);
+        CronDto cronDto = new CronDto();
+        cronDto.setCronExpression(cronExpression);
+        cronDto.setStartTimestamp(start);
+        cronDto.setEndTimestamp(end);
+
+        String post = HttpUtil.post("http://localhost:8081/bgi/api/cron/next-timestamp", JSONUtil.toJsonStr(cronDto));
+        System.err.println(post);
+        System.err.println(JSONUtil.toBean(post, Result.class));
     }
 }
