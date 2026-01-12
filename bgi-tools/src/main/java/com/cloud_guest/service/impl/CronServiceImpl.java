@@ -36,25 +36,21 @@ public class CronServiceImpl implements CronService {
 
         CronParser parser = new CronParser(CronDefinitionBuilder.instanceDefinitionFor(CronType.QUARTZ));
 
-        try {
-            Cron cron = parser.parse(cronExpression).validate();
-            ExecutionTime executionTime = ExecutionTime.forCron(cron);
+        Cron cron = parser.parse(cronExpression).validate();
+        ExecutionTime executionTime = ExecutionTime.forCron(cron);
 
-            // long → Instant → ZonedDateTime
-            ZonedDateTime from = ZonedDateTime.ofInstant(Instant.ofEpochMilli(startTimeMs), ZoneId.systemDefault());
-            ZonedDateTime to = ZonedDateTime.ofInstant(Instant.ofEpochMilli(endTimeMs), ZoneId.systemDefault());
+        // long → Instant → ZonedDateTime
+        ZonedDateTime from = ZonedDateTime.ofInstant(Instant.ofEpochMilli(startTimeMs), ZoneId.systemDefault());
+        ZonedDateTime to = ZonedDateTime.ofInstant(Instant.ofEpochMilli(endTimeMs), ZoneId.systemDefault());
 
-            // 寻找下一个执行时间
-            Optional<ZonedDateTime> next = executionTime.nextExecution(from);
+        // 寻找下一个执行时间
+        Optional<ZonedDateTime> next = executionTime.nextExecution(from);
 
-            // 如果存在且在 endTime 之前/等于，返回对应的毫秒时间戳
-            return next.filter(candidate -> !candidate.isAfter(to))
-                    .map(ZonedDateTime::toInstant)
-                    .map(Instant::toEpochMilli).orElseGet(null);
+        // 如果存在且在 endTime 之前/等于，返回对应的毫秒时间戳
+        return next.filter(candidate -> !candidate.isAfter(to))
+                .map(ZonedDateTime::toInstant)
+                .map(Instant::toEpochMilli).orElseGet(null);
 
-        } catch (Exception e) {
-            // cron 非法 或其他异常
-            return (Long) Optional.empty().orElseGet(() -> null);
-        }
+
     }
 }
