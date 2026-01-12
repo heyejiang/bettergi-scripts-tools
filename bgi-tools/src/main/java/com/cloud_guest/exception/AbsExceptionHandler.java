@@ -7,6 +7,8 @@ import com.cloud_guest.exception.exceptions.GlobalConfigException;
 import com.cloud_guest.exception.exceptions.GlobalCustomException;
 import com.cloud_guest.exception.exceptions.GlobalException;
 import com.cloud_guest.result.Result;
+import com.cloud_guest.view.BasicJsonView;
+import com.fasterxml.jackson.annotation.JsonView;
 import org.springframework.core.env.Environment;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -27,6 +29,7 @@ public interface AbsExceptionHandler {
     }
     @ExceptionHandler(value = MethodArgumentNotValidException.class)
     @ResponseBody
+    @JsonView(BasicJsonView.BaseView.class)
     default Result notValidExceptionHandler(HttpServletRequest req, Exception e) {
         ApiCode validateFailed = ApiCode.VALIDATE_FAILED;
         return Result.result(validateFailed.getCode(), validateFailed.getMessage());
@@ -35,6 +38,7 @@ public interface AbsExceptionHandler {
 
     @ExceptionHandler(value = Exception.class)
     @ResponseBody
+    @JsonView(BasicJsonView.BaseView.class)
     default Result exceptionHandler(HttpServletRequest req, Exception e) {
         // 打印异常堆栈信息
         e.printStackTrace();
