@@ -21,10 +21,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.util.Optional;
 
 import static com.cloud_guest.result.Result.ok;
 
@@ -45,7 +41,7 @@ public class CronController {
     @Operation(summary = "解析cron表达式获取俩个时间戳中符合条件的首个时间戳 没有就返回null")  // Swagger API文档注解，描述接口功能
     @PostMapping("next-timestamp")  // HTTP POST映射，指定请求路径为"next-timestamp"
     @JsonView(BasicJsonView.BaseView.class)
-    public Result getNextCronTimestamp(@Validated @RequestBody CronDto cronDto) {  // 方法签名，接收经过验证的请求体参数
+    public Result<Long> getNextCronTimestamp(@Validated @RequestBody CronDto cronDto) {  // 方法签名，接收经过验证的请求体参数
         return ok(cronService.findNearestExecutionAfter(cronDto.getCronExpression(), cronDto.getStartTimestamp(), cronDto.getEndTimestamp()));
     }  // 当前方法返回null，实际实现中应该返回计算得到的时间戳
 
