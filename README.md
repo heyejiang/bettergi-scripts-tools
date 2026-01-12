@@ -15,7 +15,7 @@ bettergi-script-tools 是一个基于 bettergi-script 的工具集，提供了�
 ### 1. 下载代码
 
 ```shell
-git clone https://github.com/Kirito520Asuna/WsProxy.git
+git clone https://github.com/Kirito520Asuna/bettergi-script-tools.git
 ```
 
 ### 2. 新建配置文件 application-prod.yml
@@ -60,7 +60,7 @@ docker-compose up -d
 version: '3.8'
 
 services:
-  wsproxy:
+  bettergi-script-tools:
     image: ghcr.io/kirito520asuna/bettergi-script-tools:latest
     container_name: bettergi-script-tools
     ports:
@@ -77,7 +77,7 @@ services:
       - bgi-network
     restart: unless-stopped
 networks:
-  wsproxy-network:
+  bgi-network:
     driver: bridge
 
 ```

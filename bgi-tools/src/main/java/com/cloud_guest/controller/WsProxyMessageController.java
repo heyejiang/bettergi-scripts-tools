@@ -4,6 +4,8 @@ import cn.hutool.json.JSONUtil;
 import com.cloud_guest.aop.log.SysLog;
 import com.cloud_guest.domain.WsProxy;
 import com.cloud_guest.manager.WsClientManager;
+import com.cloud_guest.view.BasicJsonView;
+import com.fasterxml.jackson.annotation.JsonView;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.SneakyThrows;
@@ -34,7 +36,7 @@ public class WsProxyMessageController {
     @SneakyThrows
     @Operation(summary = "发送消息")
     @PostMapping("send")
-    public String send(@Validated @RequestBody WsProxy wsProxy) {
+    public String send(@JsonView(BasicJsonView.WsProxyView.class) @Validated @RequestBody WsProxy wsProxy) {
         wsClientManager.send(wsProxy);
         return "success";
     }
@@ -42,7 +44,7 @@ public class WsProxyMessageController {
     @SneakyThrows
     @Operation(summary = "发送消息v1")
     @PostMapping("send/v1")
-    public String sendV1(@Validated @RequestBody WsProxy wsProxy) {
+    public String sendV1(@JsonView(BasicJsonView.WsProxyViewV1.class)@Validated @RequestBody WsProxy wsProxy) {
         Map<String, Object> bodyMap = wsProxy.getBodyMap();
         String url = wsProxy.getUrl();
         wsClientManager.buildUrl(url, wsProxy.getToken());

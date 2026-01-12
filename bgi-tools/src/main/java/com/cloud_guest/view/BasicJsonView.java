@@ -10,5 +10,7 @@ public class BasicJsonView {
      * 基础
      */
     public interface BaseView {}
+    public interface WsProxyView{}
+    public interface WsProxyViewV1{}
 
 }
