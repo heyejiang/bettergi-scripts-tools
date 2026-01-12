@@ -1,5 +1,6 @@
 package com.cloud_guest.domain;
 
+import com.cloud_guest.aop.validator.ValidCron;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -16,6 +17,7 @@ import lombok.experimental.Accessors;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CronDto {
+    @ValidCron
     @Schema(description = "cron表达式")
     private String cronExpression;
     @Schema(description = "开始时间戳")
