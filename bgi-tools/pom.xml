@@ -14,6 +14,8 @@
     <properties>
         <cron.version>9.2.1</cron.version>
         <guava.version>30.0-jre</guava.version>
+        <swagger.core.version>2.2.20</swagger.core.version>
+        <swagger.version>1.6.16</swagger.version>
     </properties>
 
     <dependencyManagement>
@@ -25,11 +27,52 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <!-- Swagger 注解包（核心） -->
+            <dependency>
+                <groupId>io.swagger.core.v3</groupId>
+                <artifactId>swagger-annotations</artifactId>
+                <version>${swagger.core.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.swagger.core.v3</groupId>
+                <artifactId>swagger-core</artifactId>
+                <version>${swagger.core.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.swagger</groupId>
+                <artifactId>swagger-annotations</artifactId>
+                <version>${swagger.version}</version>
+            </dependency>
+
+
         </dependencies>
     </dependencyManagement>
 
 
     <dependencies>
+        <!--aop-->
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.swagger.core.v3</groupId>
+            <artifactId>swagger-annotations</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.swagger.core.v3</groupId>
+            <artifactId>swagger-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.swagger</groupId>
+            <artifactId>swagger-annotations</artifactId>
+        </dependency>
+
         <!--guava工具集-->
         <dependency>
             <groupId>com.google.guava</groupId>

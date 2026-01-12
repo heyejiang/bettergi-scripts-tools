@@ -1,5 +1,6 @@
 package com.cloud_guest.controller;
 
+import com.cloud_guest.aop.log.SysLog;
 import com.cloud_guest.domain.CronDto;
 import com.cloud_guest.result.Result;
 import com.cloud_guest.service.CronService;
@@ -40,14 +41,7 @@ public class CronController {
     private CronService cronService;
 
     @SneakyThrows  // 使用Lombok的@SneakyThrows注解，简化异常处理
-
-/**
- * 解析cron表达式获取俩个时间戳中符合条件的首个时间戳 没有就返回null
- * 这是一个HTTP POST端点，用于处理获取下一个符合cron表达式时间戳的请求
- *
- * @param cronDto 包含cron表达式和相关时间信息的DTO对象
- * @return 符合条件的首个时间戳，如果没有则返回null
- */
+    @SysLog
     @Operation(summary = "解析cron表达式获取俩个时间戳中符合条件的首个时间戳 没有就返回null")  // Swagger API文档注解，描述接口功能
     @PostMapping("next-timestamp")  // HTTP POST映射，指定请求路径为"next-timestamp"
     @JsonView(BasicJsonView.BaseView.class)

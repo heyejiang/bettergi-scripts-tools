@@ -1,6 +1,7 @@
 package com.cloud_guest.controller;
 
 import cn.hutool.json.JSONUtil;
+import com.cloud_guest.aop.log.SysLog;
 import com.cloud_guest.domain.WsProxy;
 import com.cloud_guest.manager.WsClientManager;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,6 +30,7 @@ public class WsProxyMessageController {
     private WsClientManager wsClientManager;
 
 
+    @SysLog
     @SneakyThrows
     @Operation(summary = "发送消息")
     @PostMapping("send")
@@ -36,8 +38,9 @@ public class WsProxyMessageController {
         wsClientManager.send(wsProxy);
         return "success";
     }
+    @SysLog
     @SneakyThrows
-    @Operation(summary = "发送消息")
+    @Operation(summary = "发送消息v1")
     @PostMapping("send/v1")
     public String sendV1(@Validated @RequestBody WsProxy wsProxy) {
         Map<String, Object> bodyMap = wsProxy.getBodyMap();
