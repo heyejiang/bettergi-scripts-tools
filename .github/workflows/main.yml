@@ -6,7 +6,7 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 name: Java Jar To Zip Publish
-run-name: "[${{ (github.event_name == 'push' || ((inputs.push_to_registry || inputs.push_to_github_release) == true)) && '正式版' || '测试版' }}] Jar ${{ github.event.inputs.tag_name || github.ref_name || 'v-manual' }}  version"
+run-name: "[${{ (github.event_name == 'push' || ((inputs.push_to_registry || inputs.push_to_github_release) == true)) && '正式版' || '测试版' }}] ${{ github.event.repository.name }} ${{ github.event.inputs.tag_name || github.ref_name || 'v-manual' }}  version"
 
 on:
   push:
@@ -354,7 +354,7 @@ jobs:
             echo "⚠️ 未找到 src/main/resources/application-prod.yml，使用默认模板创建"
             cat > standalone-package/application-prod.yml << 'EOF'
           server:
-            port: 27601
+            port: 8081
             servlet:
               context-path: /bgi
           
@@ -549,9 +549,91 @@ jobs:
 
           # 记录给下一步使用
           echo "TAR_FILE_NAME=$TAR_FILE_NAME" >> $GITHUB_ENV
+
+      # 创建使用说明 Markdown 文件
+      - name: 创建 Docker 使用说明文档 (README-Docker-Usage.md)
+        run: |
+          cat <<EOF > README-Docker-Usage.md
+          # Bgi-tools Docker 镜像使用说明
+
+          **当前镜像版本**：${{ env.TAG_NAME }}  
+          **构建时间**：$(date '+%Y年%m月%d日 %H:%M:%S') (HKT)  
+          **镜像标签示例**：ghcr.io/${{ github.repository }}:${{ env.TAG_NAME }} 或 :latest
+
+          这是一个**完整的 Docker 镜像导出包**（.tar 文件），包含 Bgi-tools 应用及运行环境。  
+          支持完全离线部署，无需联网拉取镜像，非常适合内网服务器、测试机或快速分发。
+
+          ## 1. 导入镜像
+
+          在任何安装了 Docker 的机器上，直接运行以下命令：
+
+          \`\`\`bash
+          # 使用 workflow 生成的精确文件名导入镜像
+          docker load -i $TAR_FILE_NAME
+
+          # 成功后会显示类似：
+          # Loaded image: ghcr.io/${{ github.repository }}:${{ env.TAG_NAME }}
+          # Loaded image: ghcr.io/${{ github.repository }}:latest
+          \`\`\`
+
+          \`\`\`bash
+          # 查看已导入的镜像
+          docker images | grep bettergi-scripts-tools
+          \`\`\`
+
+          ## 2. 启动容器（推荐方式）
+
+          \`\`\`bash
+          docker run -d \\
+            --name bgi-tools \\
+            -p 27601:27601 \\
+            -v \$(pwd)/config:/app/config \\           # 可选：挂载配置文件目录
+            --restart unless-stopped \\
+            ghcr.io/${{ github.repository }}:${{ env.TAG_NAME }}
+          \`\`\`
+
+          - **默认端口**：27601（可在 application-prod.yml 中修改）  
+          - **访问地址**：http://你的服务器IP:27601/bgi  
+          - **配置文件挂载建议**：  
+            在当前目录创建 config 文件夹，将 application-prod.yml 放入其中
+
+          ## 3. 常用命令速查
+
+          \`\`\`bash
+          # 查看实时日志
+          docker logs -f bgi-tools
+
+          # 进入容器内部（调试用）
+          docker exec -it bgi-tools /bin/sh
+
+          # 停止并删除容器
+          docker stop bgi-tools && docker rm bgi-tools
+          \`\`\`
+
+          ## 4. 注意事项
+
+          - 需要 Docker 20.10 或更高版本
+          - 当前镜像平台：linux/amd64（适用于大多数服务器和 PC）
+          - 如遇端口冲突、网络问题，请检查：
+            - 防火墙设置
+            - 端口映射是否正确
+            - 是否有其他程序占用 27601 端口
+          - 问题反馈：欢迎在 GitHub Issues 留言
+
+          **祝使用愉快！**  
+          文档由 GitHub Actions 自动生成于构建 ${{ github.run_id }}
+          EOF
+
+          # 调试输出：确认文件名已正确展开
+          echo "使用的 TAR_FILE_NAME 值：$TAR_FILE_NAME"
+          echo "生成的 Markdown 文件内容预览："
+          cat README-Docker-Usage.md      
+
       - name: 上传 Docker 镜像 tar 文件为 Artifact
         uses: actions/upload-artifact@v4
         with:
           name: docker-image-artifact
-          path: ${{ env.TAR_FILE_NAME }}
-          retention-days: 5 # 设置保留天数为5天
+          path: |
+            ${{ env.TAR_FILE_NAME }}
+            README-Docker-Usage.md
+         # retention-days: 5 # 设置保留天数为5天
