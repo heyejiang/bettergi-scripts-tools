@@ -1,0 +1,92 @@
+:root {
+    --primary: #409eff;
+    --primary-hover: #66b1ff;
+    --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --text: #333;
+    --card-bg: rgba(255, 255, 255, 0.95);
+}
+
+[data-theme="dark"] {
+    --text: #e0e0e0;
+    --card-bg: rgba(30, 30, 40, 0.95);
+    --bg-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+}
+
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+    background: var(--bg-gradient);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.5s;
+}
+
+#welcome {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    text-align: center;
+    z-index: 1000;
+    pointer-events: none;
+    transition: opacity 0.8s;
+}
+
+#welcome.hidden { opacity: 0; }
+
+#welcome h1 { font-size: 3.5rem; margin: 0 0 1rem; text-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+#welcome p { font-size: 1.3rem; opacity: 0.9; }
+
+/* 居中按钮框 */
+.doc-box {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--card-bg);
+    padding: 50px 80px;
+    border-radius: 20px;
+    box-shadow: 0 12px 35px rgba(0,0,0,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    backdrop-filter: blur(12px);
+    text-align: center;
+    z-index: 9999;
+    transition: all 0.3s ease;
+}
+
+/* 框内按钮 */
+.doc-link {
+    display: inline-block;
+    padding: 14px 40px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 50px;
+    color: #fff;
+    background: var(--primary);
+    text-decoration: none;
+    box-shadow: 0 6px 20px rgba(64, 158, 255, 0.4);
+    transition: all 0.3s ease;
+}
+
+.doc-link:hover {
+    background: var(--primary-hover);
+    transform: scale(1.05);
+    box-shadow: 0 10px 30px rgba(64, 158, 255, 0.5);
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .doc-box { padding: 30px 40px; }
+    #welcome h1 { font-size: 2.8rem; }
+    .doc-link { padding: 12px 30px; font-size: 15px; }
+}

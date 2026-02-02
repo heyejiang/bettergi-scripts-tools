@@ -4,54 +4,51 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>BetterGI 工具集</title>
-    <!-- 动态 context-path 注入（后端提供 /context.js） -->
+
+    <!-- 动态 context-path 注入 -->
     <script src="./context/context.js"></script>
+
     <!-- 强制替换 localhost → 127.0.0.1 -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // 替换所有 href 和 src 中的 localhost
             document.querySelectorAll('a[href], script[src], link[href]').forEach(el => {
-                const attr = el.href ? 'href' : 'src';
+                const attr = el.href ? 'href' : (el.src ? 'src' : 'href');
                 if (el[attr] && el[attr].includes('localhost')) {
                     el[attr] = el[attr].replace(/localhost/g, '127.0.0.1');
                 }
             });
-
-            // 如果有动态添加的链接，也可以在这里处理
             console.log('已将 localhost 替换为 127.0.0.1');
         });
     </script>
-    <!-- 可选：添加一些基础样式，让跳转按钮更好看 -->
-    <style>
-        .doc-link {
-            position: fixed;
-            top: 16px;
-            right: 16px;
-            z-index: 9999;
-            padding: 10px 20px;
-            background: #409eff;
-            color: white;
-            border-radius: 6px;
-            text-decoration: none;
-            font-weight: bold;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            transition: all 0.3s;
-        }
-        .doc-link:hover {
-            background: #66b1ff;
-            transform: translateY(-2px);
-        }
-    </style>
+
+    <!-- 不放 style，直接 link 引入 -->
+    <link rel="stylesheet" href="./assets/style.css">
 </head>
 <body>
+
+<!-- 欢迎/加载占位 -->
+<div id="welcome">
+    <h1>BetterGI 工具集</h1>
+    <p>正在加载中...</p>
+</div>
+
 <div id="app"></div>
 
-<!-- 接口文档跳转按钮（固定在右上角） -->
-<a href="./doc.html" class="doc-link" target="_blank">
-    接口文档 (Knife4j / Swagger)
-</a>
+<!-- 居中按钮框 -->
+<div class="doc-box">
+    <a href="./doc.html" class="doc-link" target="_blank">
+        接口文档 (Knife4j / Swagger)
+    </a>
+</div>
 
-<!-- Vite 打包后的入口脚本（保持原样） -->
+<!-- 隐藏欢迎层（Vue 加载完成后） -->
+<script>
+    window.addEventListener('vue:mounted', () => {
+        const welcome = document.getElementById('welcome');
+        if (welcome) welcome.classList.add('hidden');
+    });
+</script>
+
 <script type="module" src="/src/main.js"></script>
 </body>
 </html>
