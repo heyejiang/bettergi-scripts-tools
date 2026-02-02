@@ -1,0 +1,28 @@
+# frontend/.gitignore
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# production
+/dist
+/dist-ssr
+/*.local
+
+# generated
+*.log
+*.cache
+
+# IDE / editor
+.idea
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# misc
+.DS_Store
+*.swp
+*.swo
