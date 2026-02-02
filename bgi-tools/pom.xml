@@ -135,7 +135,6 @@
         </dependency>
     </dependencies>
 
-
     <build>
         <resources>
             <resource>
@@ -148,6 +147,95 @@
         </resources>
 
         <plugins>
+            <!-- frontend-maven-plugin：自动化 Node + npm + vite build -->
+            <plugin>
+                <groupId>com.github.eirslett</groupId>
+                <artifactId>frontend-maven-plugin</artifactId>
+                <version>${frontend-maven-plugin.verison}</version>  <!-- 替换为最新版 -->
+
+                <configuration>
+                    <!-- 前端工作目录：package.json 所在位置 -->
+                    <workingDirectory>${project.basedir}/../frontend</workingDirectory>
+
+                    <!-- 可选：环境变量，比如 NODE_ENV=production -->
+                    <environmentVariables>
+                        <NODE_ENV>production</NODE_ENV>
+                    </environmentVariables>
+                </configuration>
+
+                <executions>
+                    <!-- 1. 下载并安装本地 Node & npm（不依赖系统全局） -->
+                    <execution>
+                        <id>install node and npm</id>
+                        <goals>
+                            <goal>install-node-and-npm</goal>
+                        </goals>
+                        <phase>generate-resources</phase>
+                        <configuration>
+                            <nodeVersion>v20.18.0</nodeVersion>   <!-- 推荐 LTS 版，改成你 vite 支持的 -->
+                            <npmVersion>10.8.3</npmVersion>
+                        </configuration>
+                    </execution>
+
+                    <!-- 2. npm install -->
+                    <execution>
+                        <id>npm install</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <phase>generate-resources</phase>
+                        <configuration>
+                            <arguments>install</arguments>
+                        </configuration>
+                    </execution>
+
+                    <!-- 3. npm run build（vite build） -->
+                    <execution>
+                        <id>npm build</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <phase>generate-resources</phase>  <!-- 或 package，如果你想在打包阶段跑 -->
+                        <configuration>
+                            <arguments>run build</arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- 4. 复制 dist → src/main/resources/static/（或 target/classes/static） -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>${maven-resources-plugin.verison}</version>  <!-- 最新版 -->
+
+                <executions>
+                    <execution>
+                        <id>copy-frontend-dist</id>
+                        <phase>process-resources</phase>  <!-- 在资源处理阶段复制 -->
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <!-- 目标：打包进 jar 的 classpath static 目录 -->
+                            <outputDirectory>${project.build.outputDirectory}/static</outputDirectory>
+
+                            <!-- 来源：vite build 后的 dist -->
+                            <resources>
+                                <resource>
+                                    <directory>${project.basedir}/../frontend/dist</directory>
+                                    <includes>
+                                        <include>**/*</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                            <!-- 可选：覆盖已存在文件 -->
+                            <overwrite>true</overwrite>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
