@@ -1,15 +1,20 @@
 // src/utils/context.js
 
-// 后端注入的 window.CONTEXT_PATH（如 '/bgi/'），fallback 到 '/'
-export const CONTEXT_PATH = window.CONTEXT_PATH || '/'
+// 優先使用後端注入的 window.CONTEXT_PATH（透過 <script src="/context.js"> 載入）
+// 如果沒有被注入，則 fallback 到預設值（根據你的後端 context-path 調整）
+const rawContextPath = window.CONTEXT_PATH || '/bgi/';
 
-// 统一 API 前缀（确保带 / 结尾）
-export const API_BASE = CONTEXT_PATH.endsWith('/')
-    ? CONTEXT_PATH
-    : CONTEXT_PATH + '/'
+// 標準化：確保一定以 '/' 結尾
+export const CONTEXT_PATH = rawContextPath.endsWith('/')
+    ? rawContextPath
+    : rawContextPath + '/';
 
-// 工具函数：生成完整 API URL
+// API 基底路徑
+export const API_BASE = CONTEXT_PATH;
+
+// 產生完整 API 網址的工具函式
 export const getApiUrl = (endpoint) => {
-    const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint
-    return `${API_BASE}${cleanEndpoint}`
-}
+    // 去掉開頭的 /（避免重複）
+    const clean = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+    return `${API_BASE}${clean}`;
+};
