@@ -3,6 +3,7 @@ package com.cloud_guest.controller;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 /**
@@ -14,14 +15,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @RequestMapping("${server.servlet.context-path:/}")
 public class SpaController {
 
-    @GetMapping(value = "/**", produces = MediaType.TEXT_HTML_VALUE)
-    public String forward() {
+    // 根路径 /bgi/ 或 /bgi 直接 forward
+    @GetMapping(value = {"", "/"})
+    public String root() {
         return "forward:/index.html";
     }
 
-    // 可选：根路径直接重定向到 /index.html
-    @GetMapping(value = {"", "/"})
-    public String index() {
+    // 所有非文件路径（不含 . 的路径）都 forward 到 index.html
+    // 关键：[^\\.]* 排除 .js .css .html .png 等文件请求，让静态资源 handler 接管
+    @GetMapping(value = "/{path:[^\\.]*}/**", produces = MediaType.TEXT_HTML_VALUE)
+    public String forward(@PathVariable(required = false) String path) {
         return "forward:/index.html";
     }
 }
