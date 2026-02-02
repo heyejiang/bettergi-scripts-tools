@@ -17,6 +17,9 @@
         <swagger.core.version>2.2.20</swagger.core.version>
         <swagger.version>1.6.16</swagger.version>
         <rapidocr.version>0.0.7</rapidocr.version>
+
+        <workingDirectory>../frontend</workingDirectory>
+        <workingNodeDirectory>${workingDirectory}/node</workingNodeDirectory>
     </properties>
 
     <dependencyManagement>
@@ -155,7 +158,11 @@
 
                 <configuration>
                     <!-- 前端工作目录：package.json 所在位置 -->
-                    <workingDirectory>${project.basedir}/../frontend</workingDirectory>
+                    <workingDirectory>${workingDirectory}</workingDirectory>
+                    <!-- 👇 国内 Node 镜像（关键） -->
+                    <nodeDownloadRoot>
+                        https://npmmirror.com/mirrors/node/
+                    </nodeDownloadRoot>
                     <!-- 强制 UTF-8 编码 -->
                     <environmentVariables>
                         <NODE_OPTIONS>--max-old-space-size=4096</NODE_OPTIONS>
@@ -170,39 +177,48 @@
 
                 <executions>
                     <!-- 1. 下载并安装本地 Node & npm（不依赖系统全局） -->
+                    <!-- 安装 Node -->
                     <execution>
-                        <id>install node and npm</id>
+                        <id>install-node</id>
                         <goals>
                             <goal>install-node-and-npm</goal>
                         </goals>
-                        <phase>generate-resources</phase>
                         <configuration>
-                            <nodeVersion>v20.18.0</nodeVersion>   <!-- 推荐 LTS 版，改成你 vite 支持的 -->
-                            <npmVersion>10.8.3</npmVersion>
-                            <downloadRoot>http://npm.taobao.org/mirrors/node/</downloadRoot>
+                            <!--<nodeVersion>v20.17.0</nodeVersion>
+                            <npmVersion>11.1.0</npmVersion>-->
+                            <nodeVersion>v18.20.3</nodeVersion>
+                            <npmVersion>10.7.0</npmVersion>
                         </configuration>
                     </execution>
 
-                    <!-- 2. npm install -->
+                    <!-- npm install -->
                     <execution>
-                        <id>npm install</id>
+                        <id>npm-install</id>
                         <goals>
                             <goal>npm</goal>
                         </goals>
-                        <phase>generate-resources</phase>
                         <configuration>
-                            <arguments>install</arguments>
+                            <!-- 强制使用插件下载的 node -->
+                            <environmentVariables>
+                                <PATH>${workingNodeDirectory}</PATH>
+                            </environmentVariables>
+                            <arguments>
+                                install --registry=https://registry.npmmirror.com
+                            </arguments>
                         </configuration>
                     </execution>
-
-                    <!-- 3. npm run build（vite build） -->
+                    <!-- vite build -->
                     <execution>
-                        <id>npm build</id>
+                        <id>npm-build</id>
+                        <phase>generate-resources</phase>
                         <goals>
                             <goal>npm</goal>
                         </goals>
-                        <phase>generate-resources</phase>  <!-- 或 package，如果你想在打包阶段跑 -->
                         <configuration>
+                            <!-- 强制使用插件下载的 node -->
+                            <environmentVariables>
+                                <PATH>${workingNodeDirectory}</PATH>
+                            </environmentVariables>
                             <arguments>run build</arguments>
                         </configuration>
                     </execution>
@@ -225,14 +241,11 @@
                         <configuration>
                             <!-- 目标：打包进 jar 的 classpath static 目录 -->
                             <outputDirectory>${project.build.outputDirectory}/static</outputDirectory>
-
                             <!-- 来源：vite build 后的 dist -->
                             <resources>
                                 <resource>
-                                    <directory>${project.basedir}/../frontend/dist</directory>
-                                    <includes>
-                                        <include>**/*</include>
-                                    </includes>
+                                    <directory>${workingDirectory}/dist</directory>
+                                    <filtering>false</filtering>
                                 </resource>
                             </resources>
                             <!-- 可选：覆盖已存在文件 -->
