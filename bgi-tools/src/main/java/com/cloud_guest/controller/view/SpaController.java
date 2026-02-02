@@ -12,11 +12,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
  * @Description
  */
 @Controller
-@RequestMapping("${server.servlet.context-path:/}")
+//@RequestMapping("/")
 public class SpaController {
 
-    // 根路径 /bgi/ 或 /bgi 直接 forward
-    @GetMapping(value = {"", "/"})
+    // 根路径 / 或 /bgi 直接 forward
+    @GetMapping(value = {"", "${server.servlet.context-path:/}"})
     public String root() {
         return "forward:/index.html";
     }
