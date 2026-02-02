@@ -1,12 +1,11 @@
-// src/main.js
 import { createApp } from 'vue'
 import App from './App.vue'
-import router from './router.js'  // 如果有 router.js
+import router from './router'
 
 const app = createApp(App)
 
-if (router) {
-    app.use(router)
-}
+// 等 Vue 挂载完再隐藏欢迎屏
+app.use(router).mount('#app')
 
-app.mount('#app')
+// 延迟触发事件，通知欢迎页隐藏
+window.dispatchEvent(new Event('vue:mounted'))

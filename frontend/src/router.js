@@ -1,7 +1,7 @@
 // src/router.js
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from './views/HomeView.vue'
-
+import { API_BASE } from './utils/context'
 const routes = [
     {
         path: '/',
