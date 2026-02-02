@@ -179,6 +179,7 @@
                         <configuration>
                             <nodeVersion>v20.18.0</nodeVersion>   <!-- 推荐 LTS 版，改成你 vite 支持的 -->
                             <npmVersion>10.8.3</npmVersion>
+                            <downloadRoot>http://npm.taobao.org/mirrors/node/</downloadRoot>
                         </configuration>
                     </execution>
 
