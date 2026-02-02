@@ -3,6 +3,7 @@ server:
       context-path: /bgi
   port: 8081
 
+
 spring:
   application:
     name: bgi
