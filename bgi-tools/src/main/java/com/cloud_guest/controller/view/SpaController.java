@@ -1,4 +1,4 @@
-package com.cloud_guest.controller;
+package com.cloud_guest.controller.view;
 
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
