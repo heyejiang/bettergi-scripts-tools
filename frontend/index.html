@@ -6,88 +6,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>BetterGI 工具集</title>
 
-    <!-- 动态 context-path 注入 -->
-    <script src="./context/context.js"></script>
-
-    <!-- 强制替换 localhost → 127.0.0.1 -->
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            document.querySelectorAll('a[href], script[src], link[href]').forEach(el => {
-                const attr = el.href ? 'href' : (el.src ? 'src' : 'href');
-                if (el[attr] && el[attr].includes('localhost')) {
-                    el[attr] = el[attr].replace(/localhost/g, '127.0.0.1');
-                }
-            });
-            console.log('已将 localhost 替换为 127.0.0.1');
-        });
-    </script>
-
-    <!-- 引入样式 -->
-<!--    <link rel="stylesheet" href="./assets/style.css">-->
-    <style>
-        body, html {
-            height: 100%;
-            margin: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #4f46e5, #3b82f6);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: #fff;
-        }
-
-        #welcome {
-            text-align: center;
-        }
-
-        h1 {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-        }
-
-        p {
-            font-size: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .loader {
-            border: 5px solid rgba(255, 255, 255, 0.3);
-            border-top: 5px solid #fff;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            margin: 0 auto;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
+<!--&lt;!&ndash;    &lt;!&ndash; 动态 context-path 注入 &ndash;&gt;&ndash;&gt;-->
+<!--&lt;!&ndash;    <script src="./context/context.js"></script>&ndash;&gt;-->
+<!--    &lt;!&ndash; 强制替换 localhost → 127.0.0.1 &ndash;&gt;-->
+<!--    <script>-->
+<!--        document.addEventListener('DOMContentLoaded', () => {-->
+<!--            document.querySelectorAll('a[href], script[src], link[href]').forEach(el => {-->
+<!--                const attr = el.href ? 'href' : (el.src ? 'src' : 'href');-->
+<!--                if (el[attr] && el[attr].includes('localhost')) {-->
+<!--                    el[attr] = el[attr].replace(/localhost/g, '127.0.0.1');-->
+<!--                }-->
+<!--            });-->
+<!--            console.log('已将 localhost 替换为 127.0.0.1');-->
+<!--        });-->
+<!--    </script>-->
 </head>
 <body>
 
-<!-- 欢迎/加载占位 -->
-<div id="welcome" class="welcome-screen">
-    <div class="welcome-content">
-        <h1>BetterGI 工具集</h1>
-        <p>正在加载中，请稍候…</p>
-        <div class="loader"></div>
-    </div>
-</div>
-
 <!-- Vue App 挂载点 -->
 <div id="app"></div>
-
-<!-- Vue 加载完成隐藏欢迎屏 -->
-<script>
-    window.addEventListener('vue:mounted', () => {
-        const welcome = document.getElementById('welcome');
-        if (welcome) welcome.classList.add('hidden');
-    });
-</script>
-
 <script type="module" src="/src/main.js"></script>
 </body>
 </html>
