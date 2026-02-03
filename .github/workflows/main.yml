@@ -416,8 +416,8 @@ jobs:
             cat > standalone-package/application-prod.yml << 'EOF'
           server:
             port: 8081
-            servlet:
-              context-path: /bgi
+            #servlet:
+              #context-path: /bgi #不要修改
           
           ws:
             url: ws://localhost:8081/ws # 可忽略，程序内部自动计算
