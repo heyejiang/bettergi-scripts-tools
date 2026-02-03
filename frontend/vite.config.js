@@ -5,7 +5,7 @@ import path from 'path'
 
 export default defineConfig({
     plugins: [vue()],
-    base: './',                    // 相对路径，兼容任意 context-path
+    base: '/bgi/ui/',                    // 相对路径，兼容任意 context-path
     resolve: {
         alias: {
             '@views': path.resolve(__dirname, 'src/views'), // 添加 @views 别名指向 views 目录
