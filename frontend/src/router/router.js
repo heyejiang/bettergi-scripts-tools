@@ -5,7 +5,7 @@ const routes = [
     {
         path: '/',
         name: 'home',
-        component:()=> import('@main/views/HomeView.vue')
+        component:()=> import('@main/views/HomeView')
     },
     // 其他路由...
 ]
