@@ -51,7 +51,8 @@ export default {
       if (item?.isRote) {
         router.push(item.value)
       } else if (item?.isSwagger) {
-        window.open("/bgi/" + item.value, '_blank'); // 新窗口打开 Swagger 文档
+        const basePath = import.meta.env.VITE_BASE_PATH || '/bgi/';
+        window.open(`${basePath}${item.value}`, '_blank');// 新窗口打开 Swagger 文档
       } else if (item?.isLink) {
         window.open(item.value, '_blank'); // 新窗口打开 API 调试链接
       }
