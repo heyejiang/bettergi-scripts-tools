@@ -16,13 +16,13 @@
               'feature-item',
               item.isLink && 'link-item',
               item.isSwagger && 'swagger-item',
-              item.isRotes && 'routes-item'
+              item.isRote && 'routes-item'
             ]"
           >
             <span class="icon">
-              {{ item.isLink ? '🔗' : item.isSwagger ? '📖' : item.isRotes ? '🛤️' : '' }}
+              {{ item.isLink ? '🔗' : item.isSwagger ? '📖' : item.isRote ? '🛤️' : '' }}
             </span>
-            <button class="name">{{ item.name }}</button>
+            <button class="name" @click="togo(item)">{{ item.name }}</button>
           </div>
         </div>
       </div>
@@ -31,20 +31,30 @@
 </template>
 
 <script>
+import router from "@router/router.js";
+
 export default {
   name: 'HomeView',
   data() {
     return {
       featureItems: [
         { isLink: true,name:'API 调试链接', value: 'API 调试链接' },
-        { isSwagger: true,name:'Swagger 文档入口',value: 'Swagger 文档入口' },
-        { isRotes: true,name:'路由管理面板', value: '路由管理面板' },
+        { isSwagger: true,name:'Swagger 文档入口',value: '/doc.html' },
+        { isRote: true,name:'路由管理面板', value: '路由管理面板' },
         // 你可以在这里继续添加更多项
         // { islink: true, value: '外部跳转页面' },
       ]
     }
   },
   methods: {
+    togo(item) {
+      if (item?.isRote) {
+        router.push(item.value)
+      }else if (item?.isSwagger) {
+        //
+        window.open("/bgi"+item.value, '_blank'); // 新窗口打开 Swagger 文档
+      }
+    },
     goFeature1() {
       alert('跳转到功能一')
     },
