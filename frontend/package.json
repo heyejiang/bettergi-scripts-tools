@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build:full": "npm install && npm run build",
-    "dev": "npx vite",
+    "dev": "npx vite --mode dev",
     "build": "npx vite build",
     "preview": "npx vite preview"
   },
