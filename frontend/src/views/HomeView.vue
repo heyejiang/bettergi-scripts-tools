@@ -1,7 +1,7 @@
 <template>
   <div class="home">
     <div class="welcome-card">
-      <img class="logo" src="@assets/logo.jpg" alt="Logo" />
+      <img class="logo" src="@assets/logo.svg" alt="Logo" />
       <h2>HOME</h2>
       <p>欢迎使用扩展工具</p>
       <div class="buttons">
