@@ -2,33 +2,29 @@
   <div class="home">
     <div class="welcome-card">
       <img class="logo" src="@assets/logo.svg" alt="Logo" />
-      <h2>HOME</h2>
-      <p>欢迎使用扩展工具</p>
+      <h2 class="title">HOME</h2>
+      <p class="subtitle">欢迎使用扩展工具</p>
 
-      <div class="buttons">
-        <button class="btn primary" @click="goFeature1">功能一</button>
-        <button class="btn secondary" @click="goFeature2">功能二</button>
-      </div>
-
-      <!-- 新增：功能列表 -->
+      <!-- 功能列表 -->
       <div class="feature-list">
-        <h3>可用功能</h3>
-        <ul>
-          <li
+        <h3 class="feature-title">可用功能</h3>
+        <div class="feature-grid">
+          <div
               v-for="(item, index) in featureItems"
               :key="index"
-              :class="{
-              'link-item': item.isLink,
-              'swagger-item': item.isSwagger,
-              'routes-item': item.isRotes
-            }"
+              :class="[
+              'feature-item',
+              item.isLink && 'link-item',
+              item.isSwagger && 'swagger-item',
+              item.isRotes && 'routes-item'
+            ]"
           >
-            <span class="icon" v-if="item.isLink">🔗</span>
-            <span class="icon" v-else-if="item.isSwagger">📖</span>
-            <span class="icon" v-else-if="item.isRotes">🛤️</span>
-            <span class="value">{{ item.value }}</span>
-          </li>
-        </ul>
+            <span class="icon">
+              {{ item.isLink ? '🔗' : item.isSwagger ? '📖' : item.isRotes ? '🛤️' : '' }}
+            </span>
+            <button class="name">{{ item.name }}</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -40,9 +36,9 @@ export default {
   data() {
     return {
       featureItems: [
-        { isLink: true, value: 'API 调试链接' },
-        { isSwagger: true, value: 'Swagger 文档入口' },
-        { isRotes: true, value: '路由管理面板' },
+        { isLink: true,name:'API 调试链接', value: 'API 调试链接' },
+        { isSwagger: true,name:'Swagger 文档入口',value: 'Swagger 文档入口' },
+        { isRotes: true,name:'路由管理面板', value: '路由管理面板' },
         // 你可以在这里继续添加更多项
         // { islink: true, value: '外部跳转页面' },
       ]
@@ -110,5 +106,94 @@ export default {
   margin: 10px 0 0;
   color: #666;
   font-size: 16px;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.subtitle {
+  font-size: 16px;
+  color: #666;
+  margin-bottom: 30px;
+}
+
+.feature-list {
+  text-align: left;
+}
+
+.feature-title {
+  font-size: 20px;
+  font-weight: 500;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+/* 网格布局 */
+.feature-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  background: #e0e7ff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: 1 1 45%; /* 自适应两列布局 */
+  max-width: 48%;
+}
+
+.feature-item .icon {
+  margin-right: 10px;
+  font-size: 18px;
+}
+
+.feature-item .name {
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  color: #1e40af;
+  cursor: pointer;
+}
+
+/* 悬停效果 */
+.feature-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+/* 类型区分 */
+.link-item {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.link-item:hover {
+  background: #a7f3d0;
+}
+
+.swagger-item {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.swagger-item:hover {
+  background: #fde68a;
+}
+
+.routes-item {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.routes-item:hover {
+  background: #fca5a5;
 }
 </style>
