@@ -5,7 +5,10 @@ const routes = [
     {
         path: '/',
         name: 'home',
-        component:()=> import('@main/views/HomeView')
+        component: () => import('@main/views/HomeView'),
+        // children: [
+        //     {path: '/bgi/ui', name: 'bgi', component: () => import('@main/views/BgiView')}
+        // ]
     },
     // 其他路由...
 ]
