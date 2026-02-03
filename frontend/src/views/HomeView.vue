@@ -1,7 +1,7 @@
 <template>
   <div class="home">
     <div class="welcome-card">
-      <img class="logo" src="@assets/logo.svg" alt="Logo" />
+      <img class="logo" src="@assets/logo.svg" alt="Logo"/>
       <h2 class="title">HOME</h2>
       <p class="subtitle">欢迎使用扩展工具</p>
 
@@ -38,9 +38,9 @@ export default {
   data() {
     return {
       featureItems: [
-        { isLink: true,name:'API 调试链接', value: 'API 调试链接' },
-        { isSwagger: true,name:'Swagger 文档入口',value: '/doc.html' },
-        { isRote: true,name:'路由管理面板', value: '路由管理面板' },
+        {isLink: true, name: 'API 调试链接', value: 'API 调试链接'},
+        {isSwagger: true, name: 'Swagger 文档入口', value: 'doc.html'},
+        {isRote: true, name: '路由管理面板', value: '路由管理面板'},
         // 你可以在这里继续添加更多项
         // { islink: true, value: '外部跳转页面' },
       ]
@@ -50,9 +50,10 @@ export default {
     togo(item) {
       if (item?.isRote) {
         router.push(item.value)
-      }else if (item?.isSwagger) {
-        //
-        window.open("/bgi"+item.value, '_blank'); // 新窗口打开 Swagger 文档
+      } else if (item?.isSwagger) {
+        window.open("/bgi/" + item.value, '_blank'); // 新窗口打开 Swagger 文档
+      } else if (item?.isLink) {
+        window.open(item.value, '_blank'); // 新窗口打开 API 调试链接
       }
     },
     goFeature1() {
@@ -72,7 +73,7 @@ export default {
   justify-content: center;
   align-items: center;
   height: 100vh; /* 整个视口高度 */
-  width: 100vw;  /* 整个视口宽度 */
+  width: 100vw; /* 整个视口宽度 */
   /*background: url('/assets/background.jpg') no-repeat center center; !* 背景图 *!*/
   background: linear-gradient(135deg, #74ebd5, #acb6e5);
   background-size: cover; /* 背景铺满整个屏幕 */
@@ -176,7 +177,7 @@ export default {
 /* 悬停效果 */
 .feature-item:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 /* 类型区分 */
