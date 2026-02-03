@@ -27,20 +27,25 @@ export default {
 </script>
 
 <style scoped>
+/* 页面全屏背景 */
 .home {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 80vh;
+  height: 100vh; /* 整个视口高度 */
+  width: 100vw;  /* 整个视口宽度 */
+  /*background: url('/assets/background.jpg') no-repeat center center; !* 背景图 *!*/
   background: linear-gradient(135deg, #74ebd5, #acb6e5);
+  background-size: cover; /* 背景铺满整个屏幕 */
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
+/* 中间卡片 */
 .welcome-card {
-  background: #fff;
+  background: rgba(255, 255, 255, 0.9); /* 半透明白色 */
   padding: 40px 60px;
-  border-radius: 16px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  border-radius: 20px; /* 卡片圆角 */
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
   text-align: center;
   max-width: 400px;
   width: 100%;
@@ -49,12 +54,17 @@ export default {
 
 .welcome-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.25);
 }
 
+/* Logo 圆角 */
 .welcome-card .logo {
   width: 80px;
+  height: 80px;
+  object-fit: cover; /* 保持图片比例 */
+  border-radius: 50%; /* 完全圆角 */
   margin-bottom: 20px;
+  border: 2px solid #4cafef; /* 可选边框 */
 }
 
 .welcome-card h2 {
@@ -64,41 +74,8 @@ export default {
 }
 
 .welcome-card p {
-  margin: 10px 0 30px;
+  margin: 10px 0 0;
   color: #666;
   font-size: 16px;
-}
-
-.buttons {
-  display: flex;
-  justify-content: center;
-  gap: 15px;
-}
-
-.btn {
-  padding: 10px 20px;
-  font-size: 14px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn.primary {
-  background-color: #4cafef;
-  color: white;
-}
-
-.btn.primary:hover {
-  background-color: #3b90d9;
-}
-
-.btn.secondary {
-  background-color: #e0e0e0;
-  color: #333;
-}
-
-.btn.secondary:hover {
-  background-color: #cfcfcf;
 }
 </style>
