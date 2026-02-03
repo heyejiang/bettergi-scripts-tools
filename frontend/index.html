@@ -5,25 +5,8 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>BetterGI 工具集</title>
-
-<!--&lt;!&ndash;    &lt;!&ndash; 动态 context-path 注入 &ndash;&gt;&ndash;&gt;-->
-<!--&lt;!&ndash;    <script src="./context/context.js"></script>&ndash;&gt;-->
-<!--    &lt;!&ndash; 强制替换 localhost → 127.0.0.1 &ndash;&gt;-->
-<!--    <script>-->
-<!--        document.addEventListener('DOMContentLoaded', () => {-->
-<!--            document.querySelectorAll('a[href], script[src], link[href]').forEach(el => {-->
-<!--                const attr = el.href ? 'href' : (el.src ? 'src' : 'href');-->
-<!--                if (el[attr] && el[attr].includes('localhost')) {-->
-<!--                    el[attr] = el[attr].replace(/localhost/g, '127.0.0.1');-->
-<!--                }-->
-<!--            });-->
-<!--            console.log('已将 localhost 替换为 127.0.0.1');-->
-<!--        });-->
-<!--    </script>-->
 </head>
 <body>
-
-<!-- Vue App 挂载点 -->
 <div id="app"></div>
 <script type="module" src="/src/main.js"></script>
 </body>
