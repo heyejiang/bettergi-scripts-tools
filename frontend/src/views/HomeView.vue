@@ -4,9 +4,31 @@
       <img class="logo" src="@assets/logo.svg" alt="Logo" />
       <h2>HOME</h2>
       <p>欢迎使用扩展工具</p>
+
       <div class="buttons">
         <button class="btn primary" @click="goFeature1">功能一</button>
         <button class="btn secondary" @click="goFeature2">功能二</button>
+      </div>
+
+      <!-- 新增：功能列表 -->
+      <div class="feature-list">
+        <h3>可用功能</h3>
+        <ul>
+          <li
+              v-for="(item, index) in featureItems"
+              :key="index"
+              :class="{
+              'link-item': item.isLink,
+              'swagger-item': item.isSwagger,
+              'routes-item': item.isRotes
+            }"
+          >
+            <span class="icon" v-if="item.isLink">🔗</span>
+            <span class="icon" v-else-if="item.isSwagger">📖</span>
+            <span class="icon" v-else-if="item.isRotes">🛤️</span>
+            <span class="value">{{ item.value }}</span>
+          </li>
+        </ul>
       </div>
     </div>
   </div>
@@ -15,6 +37,17 @@
 <script>
 export default {
   name: 'HomeView',
+  data() {
+    return {
+      featureItems: [
+        { isLink: true, value: 'API 调试链接' },
+        { isSwagger: true, value: 'Swagger 文档入口' },
+        { isRotes: true, value: '路由管理面板' },
+        // 你可以在这里继续添加更多项
+        // { islink: true, value: '外部跳转页面' },
+      ]
+    }
+  },
   methods: {
     goFeature1() {
       alert('跳转到功能一')
