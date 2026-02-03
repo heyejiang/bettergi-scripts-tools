@@ -9,7 +9,7 @@ export default defineConfig(({mode}) => {
     const env = loadEnv(mode, process.cwd());
     // 获取端口号，默认为 3000
     let SERVER_PORT = env.VITE_SERVER_PORT || 5137;
-    let VITE_BASE_PATH = env.VITE_BASE_PATH || '/ui/';
+    let VITE_BASE_PATH = env.VITE_BASE_PATH || '/';
     // console.log("SERVER_PORT:", SERVER_PORT);  // 输出正确的端口号
     return {
         base: VITE_BASE_PATH,
