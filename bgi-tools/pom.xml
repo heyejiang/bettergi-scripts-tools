@@ -240,7 +240,7 @@
                         </goals>
                         <configuration>
                             <!-- 目标：打包进 jar 的 classpath static 目录 -->
-                            <outputDirectory>${project.build.outputDirectory}/static/ui</outputDirectory>
+                            <outputDirectory>${project.build.outputDirectory}/static</outputDirectory>
                             <!-- 来源：vite build 后的 dist -->
                             <resources>
                                 <resource>
