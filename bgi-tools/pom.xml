@@ -203,7 +203,7 @@
                                 <PATH>${workingNodeDirectory}</PATH>
                             </environmentVariables>
                             <arguments>
-                                install --registry=https://registry.npmmirror.com
+                                install
                             </arguments>
                         </configuration>
                     </execution>
