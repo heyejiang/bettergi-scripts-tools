@@ -1,4 +1,4 @@
-<template>
+<!--<template>
   <div class="home">
     <div class="welcome-card">
 
@@ -6,7 +6,7 @@
       <h2 class="title">HOME</h2>
       <p class="subtitle">欢迎使用扩展工具</p>
 
-      <!-- 左侧功能列表 -->
+      &lt;!&ndash; 左侧功能列表 &ndash;&gt;
       <div class="feature-list">
         <h3 class="feature-title">左侧功能</h3>
         <div class="feature-grid">
@@ -21,12 +21,39 @@
         </div>
       </div>
 
-      <!-- 右侧功能列表 -->
+      &lt;!&ndash; 右侧功能列表 &ndash;&gt;
       <div class="feature-list">
         <h3 class="feature-title">右侧功能</h3>
         <div class="feature-grid">
           <div
               v-for="item in getItemsByPosition('right')"
+              :key="item.id"
+              :class="['feature-item', getItemClass(item)]"
+          >
+            <span class="icon">{{ getIcon(item) }}</span>
+            <button class="name" @click="togo(item)">{{ item.name }}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>-->
+
+
+<template>
+  <div class="home">
+    <div class="welcome-card">
+      <img class="logo" src="@assets/logo.svg" alt="Logo"/>
+      <h2 class="title">HOME</h2>
+      <p class="subtitle">欢迎使用扩展工具</p>
+
+      <!-- 遍历外层结构 -->
+      <div v-for="group in featureGroup" :key="group.title" class="feature-group">
+        <h3 class="group-title" v-if="group.children.length>0">{{ group.title }}</h3>
+        <div class="feature-wrapper">
+          <!-- 遍历子项 -->
+          <div
+              v-for="item in group.children"
               :key="item.id"
               :class="['feature-item', getItemClass(item)]"
           >
@@ -47,17 +74,22 @@ import router from "@router/router.js";
 export default {
   name: 'HomeView',
   setup() {
+
     // 统一管理所有功能项
-    const featureItems = ref([]);
+    const featureGroup = ref([]);
     const list = [
       {isLink: true, name: 'API 调试链接', value: 'API 调试链接'},
       {isSwagger: true, name: 'Swagger 文档入口', value: 'doc.html'},
       {isRote: true, name: '路由管理面板', value: '路由管理面板'},
     ]
     let index = 1
+    const initJson = {
+      title: '功能列表',
+      children: []
+    }
     list.forEach(item => {
-      featureItems.value.push({
-        id:index,
+      initJson.children.push({
+        id: index,
         position: index % 2 === 1 ? "left" : "right",
         isRote: item.isRote,
         isLink: item.isLink,
@@ -67,10 +99,16 @@ export default {
       });
       index++
     })
+    featureGroup.value.push(initJson);
     onMounted(() => {
+      let index = 1
+      const routerJson = {
+        title: '路由功能列表',
+        children: []
+      }
       router.getRoutes().filter(route => route.name !== 'home').forEach(route => {
-        featureItems.value.push({
-          id:index,
+        routerJson.children.push({
+          id: index,
           position: index % 2 === 1 ? "left" : "right",
           isRote: true,
           name: route?.meta?.title,
@@ -78,6 +116,7 @@ export default {
         });
         index++
       });
+      featureGroup.value.push(routerJson);
     });
 
     // 获取图标
@@ -93,9 +132,9 @@ export default {
       };
     };
     // 根据 position 分组
-    const getItemsByPosition = (position) => {
-      return featureItems.value.filter((item) => item.position === position);
-    };
+    // const getItemsByPosition = (position) => {
+    //   return featureGroup.value.filter((item) => item.position === position);
+    // };
 
     // 点击跳转
     const togo = async (item) => {
@@ -122,11 +161,11 @@ export default {
     // };
 
     return {
-      featureItems,
+      featureGroup,
       togo,
       getIcon,
       getItemClass,
-      getItemsByPosition
+      // getItemsByPosition
       // goFeature1,
       // goFeature2
     };
