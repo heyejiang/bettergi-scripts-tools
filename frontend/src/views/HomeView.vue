@@ -1,27 +1,36 @@
 <template>
   <div class="home">
     <div class="welcome-card">
+
       <img class="logo" src="@assets/logo.svg" alt="Logo"/>
       <h2 class="title">HOME</h2>
       <p class="subtitle">欢迎使用扩展工具</p>
 
-      <!-- 功能列表 -->
+      <!-- 左侧功能列表 -->
       <div class="feature-list">
-        <h3 class="feature-title">可用功能</h3>
+        <h3 class="feature-title">左侧功能</h3>
         <div class="feature-grid">
           <div
-              v-for="(item, index) in featureItems"
-              :key="index"
-              :class="[
-              'feature-item',
-              item.isLink && 'link-item',
-              item.isSwagger && 'swagger-item',
-              item.isRote && 'routes-item'
-            ]"
+              v-for="item in getItemsByPosition('left')"
+              :key="item.id"
+              :class="['feature-item', getItemClass(item)]"
           >
-            <span class="icon">
-              {{ item.isLink ? '🔗' : item.isSwagger ? '📖' : item.isRote ? '🛤️' : '' }}
-            </span>
+            <span class="icon">{{ getIcon(item) }}</span>
+            <button class="name" @click="togo(item)">{{ item.name }}</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧功能列表 -->
+      <div class="feature-list">
+        <h3 class="feature-title">右侧功能</h3>
+        <div class="feature-grid">
+          <div
+              v-for="item in getItemsByPosition('right')"
+              :key="item.id"
+              :class="['feature-item', getItemClass(item)]"
+          >
+            <span class="icon">{{ getIcon(item) }}</span>
             <button class="name" @click="togo(item)">{{ item.name }}</button>
           </div>
         </div>
@@ -30,27 +39,65 @@
   </div>
 </template>
 
+
 <script>
-import { ref, onMounted } from "vue";
+import {ref, onMounted} from "vue";
 import router from "@router/router.js";
 
 export default {
   name: 'HomeView',
   setup() {
-    const featureItems = ref([
-      { isLink: true, name: 'API 调试链接', value: 'API 调试链接' },
-      { isSwagger: true, name: 'Swagger 文档入口', value: 'doc.html' },
-      { isRote: true, name: '路由管理面板', value: '路由管理面板' },
-    ]);
-
+    // 统一管理所有功能项
+    const featureItems = ref([]);
+    const list = [
+      {isLink: true, name: 'API 调试链接', value: 'API 调试链接'},
+      {isSwagger: true, name: 'Swagger 文档入口', value: 'doc.html'},
+      {isRote: true, name: '路由管理面板', value: '路由管理面板'},
+    ]
+    let index = 1
+    list.forEach(item => {
+      featureItems.value.push({
+        id:index,
+        position: index % 2 === 1 ? "left" : "right",
+        isRote: item.isRote,
+        isLink: item.isLink,
+        isSwagger: item.isSwagger,
+        name: item.name,
+        value: item.value
+      });
+      index++
+    })
     onMounted(() => {
-      router.getRoutes().forEach(route => {
-        if(route.name!=='home'){
-          featureItems.value.push({ isRote: true, name: route?.meta?.title, value: route.path });
-        }
+      router.getRoutes().filter(route => route.name !== 'home').forEach(route => {
+        featureItems.value.push({
+          id:index,
+          position: index % 2 === 1 ? "left" : "right",
+          isRote: true,
+          name: route?.meta?.title,
+          value: route.path
+        });
+        index++
       });
     });
 
+    // 获取图标
+    const getIcon = (item) => {
+      return item.isLink ? "🔗" : item.isSwagger ? "📖" : item.isRote ? "🛤️" : "";
+    };
+    // 获取样式类
+    const getItemClass = (item) => {
+      return {
+        "link-item": item.isLink,
+        "swagger-item": item.isSwagger,
+        "routes-item": item.isRote,
+      };
+    };
+    // 根据 position 分组
+    const getItemsByPosition = (position) => {
+      return featureItems.value.filter((item) => item.position === position);
+    };
+
+    // 点击跳转
     const togo = async (item) => {
       if (item?.isRote) {
         try {
@@ -66,19 +113,22 @@ export default {
       }
     };
 
-    const goFeature1 = () => {
-      alert('跳转到功能一');
-    };
-
-    const goFeature2 = () => {
-      alert('跳转到功能二');
-    };
+    // const goFeature1 = () => {
+    //   alert('跳转到功能一');
+    // };
+    //
+    // const goFeature2 = () => {
+    //   alert('跳转到功能二');
+    // };
 
     return {
       featureItems,
       togo,
-      goFeature1,
-      goFeature2
+      getIcon,
+      getItemClass,
+      getItemsByPosition
+      // goFeature1,
+      // goFeature2
     };
   }
 };
@@ -150,9 +200,21 @@ export default {
   margin-bottom: 30px;
 }
 
+/*//.feature-list {
+//  text-align: left;
+//}*/
+
 .feature-list {
-  text-align: left;
+  display: inline-block;
+  width: 48%;
+  vertical-align: top;
+  margin-right: 2%;
 }
+
+.feature-list:last-child {
+  margin-right: 0;
+}
+
 
 .feature-title {
   font-size: 20px;
