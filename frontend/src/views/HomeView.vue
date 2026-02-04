@@ -243,11 +243,23 @@ export default {
   margin-top: 30px;
 }
 
+/* 美化 section-title */
 .section-title {
-  font-size: 24px;
-  font-weight: 600;
+  font-size: 28px;
+  font-weight: 700;
   margin-bottom: 20px;
-  color: #34495e;
+  color: transparent;
+  background: linear-gradient(90deg, #6a89cc, #3498db);
+  -webkit-background-clip: text;
+  background-clip: text;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.section-title:hover {
+  transform: scale(1.05);
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .feature-container {
