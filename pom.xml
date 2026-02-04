@@ -32,7 +32,7 @@
         <!-- 插件版本 -->
         <maven-jar-plugin.verison>3.3.0</maven-jar-plugin.verison>
         <maven-resources-plugin.verison>3.3.0</maven-resources-plugin.verison>
-        <frontend-maven-plugin.verison>1.15.0</frontend-maven-plugin.verison>
+        <frontend-maven-plugin.verison>1.15.1</frontend-maven-plugin.verison>
         <maven-compiler-plugin.verison>3.11.0</maven-compiler-plugin.verison>
         <flatten-maven-plugin.version>1.2.7</flatten-maven-plugin.version>
     </properties>

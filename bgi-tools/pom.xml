@@ -157,21 +157,20 @@
                 <version>${frontend-maven-plugin.verison}</version>  <!-- 替换为最新版 -->
 
                 <configuration>
-                    <!-- 前端工作目录：package.json 所在位置 -->
+                    <!-- 前端目录（package.json 所在） -->
                     <workingDirectory>${workingDirectory}</workingDirectory>
-                    <!-- 👇 国内 Node 镜像（关键） -->
-                    <nodeDownloadRoot>
-                        https://npmmirror.com/mirrors/node/
-                    </nodeDownloadRoot>
-                    <!-- 强制 UTF-8 编码 -->
+
+                    <!-- Node 安装根目录（不要再 /node） -->
+                    <installDirectory>${workingDirectory}</installDirectory>
+
+                    <!-- 国内 Node 镜像 -->
+                    <nodeDownloadRoot>https://npmmirror.com/mirrors/node/</nodeDownloadRoot>
+
                     <environmentVariables>
-                        <NODE_OPTIONS>--max-old-space-size=4096</NODE_OPTIONS>
+                        <!--<NODE_ENV>production</NODE_ENV>-->
                         <LANG>zh_CN.UTF-8</LANG>
                         <LC_ALL>zh_CN.UTF-8</LC_ALL>
-                    </environmentVariables>
-                    <!-- 可选：环境变量，比如 NODE_ENV=production -->
-                    <environmentVariables>
-                        <NODE_ENV>production</NODE_ENV>
+                        <NODE_OPTIONS>--max-old-space-size=4096</NODE_OPTIONS>
                     </environmentVariables>
                 </configuration>
 
@@ -184,12 +183,21 @@
                             <goal>install-node-and-npm</goal>
                         </goals>
                         <configuration>
-                            <!--<nodeVersion>v20.17.0</nodeVersion>
-                            <npmVersion>11.1.0</npmVersion>-->
-                            <nodeVersion>v18.20.3</nodeVersion>
-                            <npmVersion>10.7.0</npmVersion>
+                            <nodeVersion>v20.17.0</nodeVersion>
+                            <!--<npmVersion>10.7.0</npmVersion>-->
                         </configuration>
                     </execution>
+
+                    <execution>
+                        <id>npm-version</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>--version</arguments>
+                        </configuration>
+                    </execution>
+
 
                     <!-- npm install -->
                     <execution>
@@ -198,12 +206,12 @@
                             <goal>npm</goal>
                         </goals>
                         <configuration>
-                            <!-- 强制使用插件下载的 node -->
+                    <!--        &lt;!&ndash; 强制使用插件下载的 node &ndash;&gt;
                             <environmentVariables>
-                                <PATH>${workingNodeDirectory}</PATH>
-                            </environmentVariables>
+                                <PATH>${workingNodeDirectory}:${env.PATH}</PATH>
+                            </environmentVariables>-->
                             <arguments>
-                                install
+                                install --registry=https://registry.npmmirror.com
                             </arguments>
                         </configuration>
                     </execution>
@@ -215,10 +223,10 @@
                             <goal>npm</goal>
                         </goals>
                         <configuration>
-                            <!-- 强制使用插件下载的 node -->
+                        <!--    &lt;!&ndash; 强制使用插件下载的 node &ndash;&gt;
                             <environmentVariables>
                                 <PATH>${workingNodeDirectory}</PATH>
-                            </environmentVariables>
+                            </environmentVariables>-->
                             <arguments>run build</arguments>
                         </configuration>
                     </execution>
