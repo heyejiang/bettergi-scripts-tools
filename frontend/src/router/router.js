@@ -5,15 +5,24 @@ const routes = [
     {
         path: '/',
         name: 'home',
+        isRoot: true,
         meta: {
             title: '首页',
             desc: '首页',
+            asSubParentTitle: '主页功能',
             icon: 'icon-home'
         },
         component: () => import('@main/views/HomeView'),
-        // children: [
-        //     {path: '/bgi/ui', name: 'bgi', component: () => import('@main/views/BgiView')}
-        // ]
+        children: [
+            {
+                path: '/bgi/ui', name: 'bgi', meta: {
+                    title: '测试',
+                    desc: '测试',
+                    asSubParentTitle: '测试功能',
+                    icon: 'icon-home'
+                },
+            }
+        ]
     },
     // 其他路由...
 ]

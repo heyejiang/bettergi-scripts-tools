@@ -38,47 +38,9 @@
   </div>
 </template>
 
-
-
-<!--<template>
-  <div class="home">
-    <div class="welcome-card">
-      <img class="logo" src="@assets/logo.svg" alt="Logo"/>
-      <h2 class="title">HOME</h2>
-      <p class="subtitle">欢迎使用扩展工具</p>
-
-      &lt;!&ndash; 遍历外层结构 &ndash;&gt;
-      <div v-for="group in featureGroup" :key="group.title" class="feature-group">
-        <h3 class="group-title" v-if="group.children.length>0">{{ group.title }}</h3>
-        <div class="feature-wrapper">
-          &lt;!&ndash; 遍历子项 &ndash;&gt;
-          <div class="feature-list-left"
-              v-for="item in getItemsByPosition(group.children,'left')"
-              :key="item.id"
-              :class="['feature-item', getItemClass(item)]"
-          >
-            <span class="icon">{{ getIcon(item) }}</span>
-            <button class="name" @click="togo(item)">{{ item.name }}</button>
-          </div>
-
-          <div class="feature-list-right"
-              v-for="item in getItemsByPosition(group.children,'right')"
-              :key="item.id"
-              :class="['feature-item', getItemClass(item)]"
-          >
-            <span class="icon">{{ getIcon(item) }}</span>
-            <button class="name" @click="togo(item)">{{ item.name }}</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>-->
-
-
 <script>
 import {ref, onMounted} from "vue";
-import router from "@router/router.js";
+import router from "@router/router";
 const currentRoute=ref(router.currentRoute)
 export default {
   name: 'HomeView',
@@ -112,11 +74,11 @@ export default {
     onMounted(() => {
       let index = 1
       let routerJson = {
-        title: '路由功能列表',
+        title: '基础路由功能列表',
         children: []
       }
 
-      router.getRoutes().filter(route => route.name !== 'home').forEach(route => {
+      router.getRoutes().filter(route => route.name !== 'home'&&route?.isRoot).forEach(route => {
         routerJson.children.push({
           id: index,
           position: index % 2 === 1 ? "left" : "right",
@@ -127,6 +89,26 @@ export default {
         index++
       });
       featureGroup.value.push(routerJson);
+
+      const homeRoute=router.getRoutes().find(route => route.name === 'home')
+      index = 1
+      let homeJson = {
+        title: homeRoute?.meta?.asSubParentTitle,
+        children: []
+      }
+
+      homeRoute.children.forEach(route => {
+        routerJson.children.push({
+          id: index,
+          position: index % 2 === 1 ? "left" : "right",
+          isRote: true,
+          name: route?.meta?.title,
+          value: route.path
+        });
+        index++
+      });
+      featureGroup.value.push(homeJson);
+
     });
 
     // 获取图标
