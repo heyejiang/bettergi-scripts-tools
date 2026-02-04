@@ -79,3 +79,14 @@ knife4j:
     enable: false
     username: root
     password: root
+
+#logging:
+#  charset:
+#    console: UTF-8
+#    file: UTF-8
+#  file:
+#    name: ./logs/bgi.log
+#  logback:
+#    rollingpolicy:
+#      max-file-size: 10MB  # 单个日志文件最大大小
+#      max-history: 30      # 保留的历史日志文件数量
