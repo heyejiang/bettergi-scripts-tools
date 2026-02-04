@@ -31,40 +31,58 @@
 </template>
 
 <script>
+import { ref, onMounted } from "vue";
 import router from "@router/router.js";
 
 export default {
   name: 'HomeView',
-  data() {
-    return {
-      featureItems: [
-        {isLink: true, name: 'API 调试链接', value: 'API 调试链接'},
-        {isSwagger: true, name: 'Swagger 文档入口', value: 'doc.html'},
-        {isRote: true, name: '路由管理面板', value: '路由管理面板'},
-        // 你可以在这里继续添加更多项
-        // { islink: true, value: '外部跳转页面' },
-      ]
-    }
-  },
-  methods: {
-    togo(item) {
+  setup() {
+    const featureItems = ref([
+      { isLink: true, name: 'API 调试链接', value: 'API 调试链接' },
+      { isSwagger: true, name: 'Swagger 文档入口', value: 'doc.html' },
+      { isRote: true, name: '路由管理面板', value: '路由管理面板' },
+    ]);
+
+    onMounted(() => {
+      router.getRoutes().forEach(route => {
+        if(route.name!=='home'){
+          featureItems.value.push({ isRote: true, name: route?.meta?.title, value: route.path });
+        }
+      });
+    });
+
+    const togo = async (item) => {
       if (item?.isRote) {
-        router.push(item.value)
+        try {
+          await router.push(item.value);
+        } catch (error) {
+          console.error('路由跳转失败:', error);
+        }
       } else if (item?.isSwagger) {
         const basePath = import.meta.env.VITE_BASE_PATH || '/bgi/';
-        window.open(`${basePath}${item.value}`, '_blank');// 新窗口打开 Swagger 文档
+        window.open(`${basePath}${item.value}`, '_blank');
       } else if (item?.isLink) {
-        window.open(item.value, '_blank'); // 新窗口打开 API 调试链接
+        window.open(item.value, '_blank');
       }
-    },
-    goFeature1() {
-      alert('跳转到功能一')
-    },
-    goFeature2() {
-      alert('跳转到功能二')
-    }
+    };
+
+    const goFeature1 = () => {
+      alert('跳转到功能一');
+    };
+
+    const goFeature2 = () => {
+      alert('跳转到功能二');
+    };
+
+    return {
+      featureItems,
+      togo,
+      goFeature1,
+      goFeature2
+    };
   }
-}
+};
+
 </script>
 
 <style scoped>
