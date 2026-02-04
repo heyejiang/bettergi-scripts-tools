@@ -87,9 +87,9 @@ export default {
     // 统一管理所有功能项
     const featureGroup = ref([]);
     const list = [
-      {isLink: true, name: 'API 调试链接', value: 'API 调试链接'},
+      // {isLink: true, name: 'API 调试链接', value: 'API 调试链接'},
       {isSwagger: true, name: 'Swagger 文档入口', value: 'doc.html'},
-      {isRote: true, name: '路由管理面板', value: '路由管理面板'},
+      // {isRote: true, name: '路由管理面板', value: '路由管理面板'},
     ]
     let index = 1
     let initJson = {
