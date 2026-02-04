@@ -1,8 +1,8 @@
 <template>
   <div class="home">
     <div class="welcome-card">
-      <img class="logo" src="@assets/logo.svg" alt="Logo" />
-      <h2 class="title">{{currentRoute.meta.title||'HOME'}}</h2>
+      <img class="logo" src="@assets/logo.svg" alt="Logo"/>
+      <h2 class="title">{{ currentRoute.meta.title || 'HOME' }}</h2>
       <p class="subtitle">欢迎使用扩展工具</p>
 
       <!-- 外层结构遍历 -->
@@ -12,9 +12,9 @@
           <!-- 左侧功能列表 -->
           <div class="feature-column">
             <div
-              v-for="item in getItemsByPosition(group.children, 'left')"
-              :key="item.id"
-              :class="['feature-item', getItemClass(item)]"
+                v-for="item in getItemsByPosition(group.children, 'left')"
+                :key="item.id"
+                :class="['feature-item', getItemClass(item)]"
             >
               <span class="icon">{{ getIcon(item) }}</span>
               <button class="name" @click="togo(item)">{{ item.name }}</button>
@@ -24,9 +24,9 @@
           <!-- 右侧功能列表 -->
           <div class="feature-column">
             <div
-              v-for="item in getItemsByPosition(group.children, 'right')"
-              :key="item.id"
-              :class="['feature-item', getItemClass(item)]"
+                v-for="item in getItemsByPosition(group.children, 'right')"
+                :key="item.id"
+                :class="['feature-item', getItemClass(item)]"
             >
               <span class="icon">{{ getIcon(item) }}</span>
               <button class="name" @click="togo(item)">{{ item.name }}</button>
@@ -41,7 +41,8 @@
 <script>
 import {ref, onMounted} from "vue";
 import router from "@router/router";
-const currentRoute=ref(router.currentRoute)
+
+const currentRoute = ref(router.currentRoute)
 export default {
   name: 'HomeView',
   setup() {
@@ -78,7 +79,7 @@ export default {
         children: []
       }
 
-      router.getRoutes().filter(route => route.name !== 'home'&&route?.isRoot).forEach(route => {
+      router.getRoutes().filter(route => route.name !== 'home' && route?.isRoot).forEach(route => {
         routerJson.children.push({
           id: index,
           position: index % 2 === 1 ? "left" : "right",
@@ -90,7 +91,7 @@ export default {
       });
       featureGroup.value.push(routerJson);
 
-      const homeRoute=router.getRoutes().find(route => route.name === 'home')
+      const homeRoute = router.getRoutes().find(route => route.name === 'home')
       index = 1
       let homeJson = {
         title: homeRoute?.meta?.asSubParentTitle,
@@ -124,7 +125,7 @@ export default {
       };
     };
     // 根据 position 分组
-    const getItemsByPosition = (featureGroup,position) => {
+    const getItemsByPosition = (featureGroup, position) => {
       return featureGroup.filter((item) => item.position === position);
     };
 
@@ -198,17 +199,43 @@ export default {
   border: 3px solid #6a89cc;
 }
 
+/* 主标题美化 */
 .title {
-  font-size: 32px;
-  font-weight: 700;
+  font-size: 36px;
+  font-weight: 800;
   margin-bottom: 15px;
-  color: #2c3e50;
+  color: transparent;
+  background: linear-gradient(90deg, #6a89cc, #3498db);
+  -webkit-background-clip: text;
+  background-clip: text;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
 }
 
+.title:hover {
+  transform: scale(1.05);
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* 副标题美化 */
 .subtitle {
-  font-size: 18px;
+  font-size: 20px;
   color: #7f8c8d;
   margin-bottom: 40px;
+  opacity: 0;
+  animation: fadeIn 1s ease-in-out forwards;
+  font-style: italic;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* 功能区域 */
@@ -292,12 +319,24 @@ export default {
   }
 
   .title {
-    font-size: 28px;
+    font-size: 36px;
+    font-weight: 800;
+    color: transparent;
+    background: linear-gradient(90deg, #6a89cc, #3498db);
+    -webkit-background-clip: text;
+    background-clip: text;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .title:hover {
+    transform: scale(1.05);
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
 
   .subtitle {
-    font-size: 16px;
+    font-size: 20px;
   }
+
 }
 </style>
 
