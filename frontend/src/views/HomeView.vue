@@ -52,7 +52,7 @@
         <h3 class="group-title" v-if="group.children.length>0">{{ group.title }}</h3>
         <div class="feature-wrapper">
           <!-- 遍历子项 -->
-          <div
+          <div class="feature-list-left"
               v-for="item in getItemsByPosition(group.children,'left')"
               :key="item.id"
               :class="['feature-item', getItemClass(item)]"
@@ -61,7 +61,7 @@
             <button class="name" @click="togo(item)">{{ item.name }}</button>
           </div>
 
-          <div
+          <div class="feature-list-right"
               v-for="item in getItemsByPosition(group.children,'right')"
               :key="item.id"
               :class="['feature-item', getItemClass(item)]"
@@ -92,7 +92,7 @@ export default {
       {isRote: true, name: '路由管理面板', value: '路由管理面板'},
     ]
     let index = 1
-    const initJson = {
+    let initJson = {
       title: '功能列表',
       children: []
     }
@@ -111,7 +111,7 @@ export default {
     featureGroup.value.push(initJson);
     onMounted(() => {
       let index = 1
-      const routerJson = {
+      let routerJson = {
         title: '路由功能列表',
         children: []
       }
