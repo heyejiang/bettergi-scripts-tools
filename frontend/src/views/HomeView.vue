@@ -53,7 +53,16 @@
         <div class="feature-wrapper">
           <!-- 遍历子项 -->
           <div
-              v-for="item in group.children"
+              v-for="item in getItemsByPosition(group.children,'left')"
+              :key="item.id"
+              :class="['feature-item', getItemClass(item)]"
+          >
+            <span class="icon">{{ getIcon(item) }}</span>
+            <button class="name" @click="togo(item)">{{ item.name }}</button>
+          </div>
+
+          <div
+              v-for="item in getItemsByPosition(group.children,'right')"
               :key="item.id"
               :class="['feature-item', getItemClass(item)]"
           >
@@ -132,9 +141,9 @@ export default {
       };
     };
     // 根据 position 分组
-    // const getItemsByPosition = (position) => {
-    //   return featureGroup.value.filter((item) => item.position === position);
-    // };
+    const getItemsByPosition = (featureGroup,position) => {
+      return featureGroup.filter((item) => item.position === position);
+    };
 
     // 点击跳转
     const togo = async (item) => {
@@ -165,7 +174,7 @@ export default {
       togo,
       getIcon,
       getItemClass,
-      // getItemsByPosition
+      getItemsByPosition
       // goFeature1,
       // goFeature2
     };
