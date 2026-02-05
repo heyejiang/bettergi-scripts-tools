@@ -47,8 +47,8 @@
             <label class="label">id</label>
             <label class="label">任务标识唯一值</label>
             <label class="label">Cron 表达式</label>
-            <label class="label">开始时间戳</label>
-            <label class="label">结束时间戳</label>
+            <label class="label">开始时间</label>
+            <label class="label">结束时间</label>
             <label class="label">操作按钮 </label>
           </div>
           <br/>
