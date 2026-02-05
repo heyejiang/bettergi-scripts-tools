@@ -1,4 +1,4 @@
-<template>
+<template xmlns="http://www.w3.org/1999/html">
   <div class="container">
     <h1 class="title">BetterGI Script Tools</h1>
 
@@ -19,22 +19,26 @@
           <input v-model.number="endTimestamp" class="input" type="number" placeholder="结束时间戳" />
         </div>
         <button @click="getNextTimestamp" class="btn primary">获取下一个时间戳</button>
+        <label class="label">返回结果:</label>
         <pre class="result">{{ cronResult }}</pre>
       </div>
 
       <div class="card">
         <h2 class="section-title">Cron 任务列表</h2>
         <div v-for="(item, index) in cronList" :key="index" class="cron-item">
+          <p>{{ index }}</p >
           <input v-model="item.key" class="input small" placeholder="任务标识唯一值" />
           <input v-model="item.cronExpression" class="input small" placeholder="Cron 表达式 如: 0 0 * * * ?" />
           <input v-model.number="item.startTimestamp" class="input small" type="number" placeholder="开始时间戳" />
           <input v-model.number="item.endTimestamp" class="input small" type="number" placeholder="结束时间戳" />
           <button @click="cronListRemoveItem(index)" class="btn danger">删除</button>
+          <br/>
         </div>
         <div class="actions">
           <button @click="cronListAddItem" class="btn secondary">添加任务</button>
           <button @click="cronListSubmit" class="btn primary">提交</button>
         </div>
+        <label class="label">返回结果:</label>
         <pre class="result">{{ cronListResult }}</pre>
       </div>
     </div>
@@ -45,6 +49,7 @@
         <h2 class="section-title">OCR 功能</h2>
         <input type="file" @change="handleFileUpload" class="file-input" />
         <button @click="performOcr" class="btn primary">执行 OCR 识别</button>
+        <label class="label">返回结果:</label>
         <pre class="result">{{ ocrResult }}</pre>
       </div>
     </div>
@@ -201,127 +206,162 @@ export default {
 
 
 <style scoped>
-pre {
-  background-color: #f4f4f4;
-  padding: 10px;
-  border-radius: 5px;
-  white-space: pre-wrap;
-}
-
+/* 容器布局 */
 .container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
-  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #f5f7fa, #e4edf9);
+  min-height: 100vh;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .title {
   text-align: center;
-  color: #333;
+  font-size: 2.5rem;
+  font-weight: bold;
   margin-bottom: 30px;
+  color: #2c3e50;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.section {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
+/* 卡片样式 */
 .card {
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  padding: 20px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
 }
 
 .section-title {
-  font-size: 1.5em;
-  margin-bottom: 15px;
-  color: #444;
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #3498db;
+  text-align: center;
 }
 
+/* 表单项 */
 .form-group {
-  margin-bottom: 15px;
+  margin-bottom: 20px;
 }
 
 .label {
   display: block;
-  margin-bottom: 5px;
-  font-weight: bold;
-  color: #555;
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #2c3e50;
 }
 
 .input {
   width: 100%;
-  padding: 10px;
+  padding: 12px 15px;
   border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1em;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
 }
 
 .input:focus {
-  border-color: #007bff;
   outline: none;
-  box-shadow: 0 0 4px rgba(0, 123, 255, 0.3);
+  border-color: #3498db;
+  box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
 }
 
-.small {
-  width: calc(100% - 120px);
+.input.small {
+  width: calc(100% - 100px);
   display: inline-block;
   margin-right: 10px;
 }
 
+/* 按钮样式 */
 .btn {
-  padding: 10px 20px;
+  padding: 12px 20px;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
+  font-size: 1rem;
   cursor: pointer;
-  font-size: 1em;
-  transition: background 0.3s ease;
+  transition: all 0.3s ease;
+  margin-right: 10px;
 }
 
-.primary {
-  background: #007bff;
-  color: #fff;
+.btn.primary {
+  background: #3498db;
+  color: white;
 }
 
-.primary:hover {
-  background: #0056b3;
+.btn.primary:hover {
+  background: #2980b9;
+  transform: scale(1.05);
 }
 
-.secondary {
-  background: #6c757d;
-  color: #fff;
+.btn.secondary {
+  background: #95a5a6;
+  color: white;
 }
 
-.secondary:hover {
-  background: #5a6268;
+.btn.secondary:hover {
+  background: #7f8c8d;
+  transform: scale(1.05);
 }
 
-.danger {
-  background: #dc3545;
-  color: #fff;
+.btn.danger {
+  background: #e74c3c;
+  color: white;
 }
 
-.danger:hover {
-  background: #bd2130;
+.btn.danger:hover {
+  background: #c0392b;
+  transform: scale(1.05);
+}
+
+/* 文件上传 */
+.file-input {
+  margin-bottom: 15px;
+  padding: 10px;
+  border: 1px dashed #3498db;
+  border-radius: 8px;
+  width: 100%;
+  cursor: pointer;
+}
+
+.file-input:hover {
+  background: #f1f8ff;
+}
+
+/* 结果展示 */
+.result {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef); /* 添加渐变背景 */
+  padding: 15px;
+  border-radius: 8px;
+  margin-top: 15px;
+  white-space: pre-wrap;
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: #2c3e50;
+}
+
+/* 列表项 */
+.cron-item {
+  padding: 15px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  background: #fafafa;
 }
 
 .actions {
-  margin-top: 15px;
-  display: flex;
-  gap: 10px;
+  text-align: center;
+  margin-top: 20px;
 }
 
-.file-input {
-  margin-bottom: 15px;
-}
 
-.result {
-  background: #f8f9fa;
-  padding: 15px;
-  border-radius: 4px;
-  white-space: pre-wrap;
-  margin-top: 15px;
-}
 </style>
