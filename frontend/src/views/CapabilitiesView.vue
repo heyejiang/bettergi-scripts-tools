@@ -54,8 +54,10 @@
           <button @click="cronListSubmit" class="btn primary">提交</button>
         </div>
         <label class="label">返回结果:</label>
-        <pre class="result">{{ cronListResult || '暂无返回数据' }}</pre>
-        <button @click="copyToClipboard(cronListResult)" class="copy-btn">📋 复制</button>
+        <div class="result-all">
+          <pre class="result">{{ cronListResult || '暂无返回数据' }}</pre>
+          <button @click="copyToClipboard(cronListResult)" class="copy-btn">📋 复制</button>
+        </div>
       </div>
     </div>
 
@@ -66,8 +68,10 @@
         <input type="file" @change="handleFileUpload" class="file-input"/>
         <button @click="performOcr" class="btn primary">执行 OCR 识别</button>
         <label class="label">返回结果:</label>
-        <pre class="result">{{ ocrResult || '暂无返回数据' }}</pre>
-        <button @click="copyToClipboard(ocrResult)" class="copy-btn">📋 复制</button>
+        <div class="result-all">
+          <pre class="result">{{ ocrResult || '暂无返回数据' }}</pre>
+          <button @click="copyToClipboard(ocrResult)" class="copy-btn">📋 复制</button>
+        </div>
       </div>
     </div>
   </div>
@@ -77,6 +81,7 @@
 <script>
 import {ref} from 'vue'
 import service from "@utils/request";
+import {ElMessage} from "element-plus";
 
 export default {
   name: 'CapabilitiesView',
@@ -198,14 +203,22 @@ export default {
         console.error('Error performing OCR:', error)
       }
     }
-    const copyToClipboard = async (text) => {
+
+    const copyToClipboard = (text) => {
+
       try {
-        await navigator.clipboard.writeText(text || '');
+        navigator.clipboard.writeText(text || '');
         /*alert('已复制到剪贴板！');*/
-        // Message.success('已复制到剪贴板！'); // 成功提示
+        ElMessage({
+          type: 'success',
+          message: `已复制到剪贴板！`,
+        })
       } catch (err) {
         console.error('复制失败:', err);
-        // Message.error('复制失败，请手动复制内容。'); // 错误提示
+        ElMessage({
+          type: 'error',
+          message: `复制失败，请手动复制内容。`,
+        });
       }
     };
 
@@ -375,13 +388,15 @@ export default {
 .file-input:hover {
   background: #f1f8ff;
 }
-.result-all{
+
+.result-all {
   display: grid;
   grid-template-columns:
   8fr        /* 输出值 */
   auto; /* 复制按钮 */
   align-items: center;
 }
+
 /* 结果展示 */
 .result {
   background: linear-gradient(135deg, #ddb568, #ffffff); /* 添加渐变背景 */
