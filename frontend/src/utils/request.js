@@ -43,6 +43,7 @@ service.interceptors.response.use(res => {
             ElNotification.error({title: msg})
             return Promise.reject('error')
         } else {
+            ElMessage({message: "请求成功", type: 'success'})
             return Promise.resolve(res.data)
         }
     },

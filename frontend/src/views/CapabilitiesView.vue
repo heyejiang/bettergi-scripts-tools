@@ -3,9 +3,11 @@
     <h1 class="title">BetterGI Script Tools</h1>
 
     <!-- Cron 相关功能 -->
+    <h2 class="section-title">Cron 功能</h2>
+
     <div class="section">
       <div class="card">
-        <h2 class="section-title">Cron 功能</h2>
+        <h3 class="section-title">[时区为东八区]解析cron表达式获取俩个时间戳中符合条件的首个时间戳 没有就返回null</h3>
         <div class="one-item">
           <div class="form-group">
             <label class="label">Cron 表达式:</label>
@@ -29,7 +31,7 @@
       </div>
 
       <div class="card">
-        <h2 class="section-title">Cron 任务列表</h2>
+        <h3 class="section-title">[时区为东八区]大批量解析</h3>
         <div class="list-item">
           <div class="list-one-item header">
             <label class="label">id</label>
@@ -60,11 +62,11 @@
         </div>
       </div>
     </div>
-
+    <h2 class="section-title">OCR 功能</h2>
     <!-- OCR 相关功能 -->
     <div class="section">
       <div class="card">
-        <h2 class="section-title">OCR 功能</h2>
+        <h3 class="section-title">OCR 图片字节组</h3>
         <input type="file" @change="handleFileUpload" class="file-input"/>
         <button @click="performOcr" class="btn primary">执行 OCR 识别</button>
         <label class="label">返回结果:</label>
@@ -89,7 +91,7 @@ export default {
     const cronResult = ref('')
     const ocrResult = ref('')
     const file = ref(null)
-    const cronExpression = ref('')
+    const cronExpression = ref('0 0 * * * ?')
     // const timeRange = ref([])
     const startTimestamp = ref(Date.now())
     const endTimestamp = ref(Date.now() + 86400000)
@@ -106,7 +108,7 @@ export default {
     const cronListAddItem = () => {
       cronList.value.push({
         key: `task${cronList.value.length + 1}`,
-        cronExpression: '',
+        cronExpression: '0 0 * * * ?',
         startTimestamp: Date.now(),
         endTimestamp: Date.now() + 86400000,
       });
