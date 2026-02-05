@@ -12,17 +12,17 @@
           <input v-model="cronExpression" placeholder="例如: 0 0 * * * ?"/>
         </label>
         <br/>
-        <label>
-          时间范围:
-          <el-date-picker
-              v-model="timeRange"
-              type="datetimerange"
-              range-separator="至"
-              start-placeholder="开始时间"
-              end-placeholder="结束时间"
-              :shortcuts="shortcuts"
-          />
-        </label>
+<!--          时间范围:-->
+<!--          <el-date-picker-->
+<!--              v-model="timeRange"-->
+<!--              type="datetimerange"-->
+<!--              range-separator="至"-->
+<!--              start-placeholder="开始时间"-->
+<!--              end-placeholder="结束时间"-->
+<!--              :shortcuts="shortcuts"-->
+<!--          />-->
+        <input v-model.number="startTimestamp" type="number" placeholder="开始时间戳"/>
+        <input v-model.number="endTimestamp" type="number" placeholder="结束时间戳"/>
         <br/>
         <button @click="getNextTimestamp">获取下一个时间戳</button>
         <pre>{{ cronResult }}</pre>
@@ -30,8 +30,8 @@
       <div class="cron-list-component">
         <h2>Cron 任务列表</h2>
         <div v-for="(item, index) in cronList" :key="index" class="cron-item">
-          <input v-model="item.key" placeholder="任务标识"/>
-          <input v-model="item.cronExpression" placeholder="Cron 表达式"/>
+          <input v-model="item.key" placeholder="任务标识唯一值"/>
+          <input v-model="item.cronExpression" placeholder="Cron 表达式 如: 0 0 * * * ?"/>
           <input v-model.number="item.startTimestamp" type="number" placeholder="开始时间戳"/>
           <input v-model.number="item.endTimestamp" type="number" placeholder="结束时间戳"/>
 <!--          <el-date-picker
@@ -72,7 +72,9 @@ export default {
     const ocrResult = ref('')
     const file = ref(null)
     const cronExpression = ref('')
-    const timeRange = ref([])
+    // const timeRange = ref([])
+    const startTimestamp = ref(Date.now())
+    const endTimestamp = ref(Date.now() + 86400000)
     const cronList = ref([
       // {
       //   key: 'task1',
@@ -141,11 +143,11 @@ export default {
     // 获取单个 Cron 表达式的下一个时间戳
     const getNextTimestamp = async () => {
       try {
-        const [start, end] = timeRange.value || [new Date(), new Date(Date.now() + 86400000)]
+        // const [start, end] = timeRange.value || [new Date(), new Date(Date.now() + 86400000)]
         const response = await service.post("/cron/next-timestamp", {
           cronExpression: cronExpression.value,
-          startTimestamp: start.getTime(),
-          endTimestamp: end.getTime(),
+          startTimestamp: startTimestamp.value,
+          endTimestamp: endTimestamp.value,
         })
         cronResult.value = JSON.stringify(response.data, null, 2)
       } catch (error) {
@@ -189,7 +191,9 @@ export default {
       ocrResult,
       file,
       cronExpression,
-      timeRange,
+      // timeRange,
+      startTimestamp,
+      endTimestamp,
       shortcuts,
       getNextTimestamp,
       cronList,
