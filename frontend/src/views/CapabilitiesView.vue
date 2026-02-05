@@ -15,11 +15,21 @@
           </div>
           <div class="form-group">
             <label class="label">开始时间戳:</label>
-            <input v-model.number="startTimestamp" class="input" type="number" placeholder="开始时间戳"/>
+            <!--            <input v-model.number="startTimestamp" class="input" type="number" placeholder="开始时间戳"/>-->
+            <el-date-picker
+                v-model="startTime"
+                type="datetime"
+                placeholder="选择开始时间"
+            />
           </div>
           <div class="form-group">
             <label class="label">结束时间戳:</label>
-            <input v-model.number="endTimestamp" class="input" type="number" placeholder="结束时间戳"/>
+            <!--            <input v-model.number="endTimestamp" class="input" type="number" placeholder="结束时间戳"/>-->
+            <el-date-picker
+                v-model="endTime"
+                type="datetime"
+                placeholder="选择结束时间"
+            />
           </div>
         </div>
         <button @click="getNextTimestamp" class="btn primary">获取下一个时间戳</button>
@@ -46,8 +56,18 @@
             <p>{{ index + 1 }}</p>
             <input v-model="item.key" class="input small" placeholder="任务标识唯一值"/>
             <input v-model="item.cronExpression" class="input small" placeholder="Cron 表达式 如: 0 0 * * * ?"/>
-            <input v-model.number="item.startTimestamp" class="input small" type="number" placeholder="开始时间戳"/>
-            <input v-model.number="item.endTimestamp" class="input small" type="number" placeholder="结束时间戳"/>
+            <!--            <input v-model.number="item.startTimestamp" class="input small" type="number" placeholder="开始时间戳"/>-->
+            <el-date-picker
+                v-model="item.startTime"
+                type="datetime"
+                placeholder="选择开始时间时间"
+            />
+            <!--            <input v-model.number="item.endTimestamp" class="input small" type="number" placeholder="结束时间戳"/>-->
+            <el-date-picker
+                v-model="item.endTime"
+                type="datetime"
+                placeholder="选择结束时间"
+            />
             <button @click="cronListRemoveItem(index)" class="btn danger">删除</button>
           </div>
         </div>
@@ -93,11 +113,17 @@ export default {
     const file = ref(null)
     const cronExpression = ref('0 0 * * * ?')
     // const timeRange = ref([])
-    const startTimestamp = ref(Date.now())
-    const endTimestamp = ref(Date.now() + 86400000)
+    const defaultTime = new Date(2000, 1, 1, 12, 0, 0)
+
+    const startTime = ref(defaultTime)
+    const endTime = ref(defaultTime)
+    const startTimestamp = ref(new Date(startTime.value).getTime())
+    const endTimestamp = ref(new Date(endTime.value).getTime())
     const cronList = ref([
       {
         key: 'task1',
+        startTime: ref(new Date(Date.now())),
+        endTime: ref(new Date(Date.now() + 86400000)),
         cronExpression: '0 0 * * * ?',
         startTimestamp: Date.now(),
         endTimestamp: Date.now() + 86400000,
@@ -108,6 +134,8 @@ export default {
     const cronListAddItem = () => {
       cronList.value.push({
         key: `task${cronList.value.length + 1}`,
+        startTime: ref(new Date(Date.now())),
+        endTime: ref(new Date(Date.now() + 86400000)),
         cronExpression: '0 0 * * * ?',
         startTimestamp: Date.now(),
         endTimestamp: Date.now() + 86400000,
@@ -120,8 +148,22 @@ export default {
 
     const cronListSubmit = async () => {
       try {
+        const list = []
+        let cronListJson = cronList.value
+        console.log('cronListJson', JSON.stringify(cronListJson, null, 2))
+        cronListJson.forEach(item => {
+          item.startTimestamp = new Date(item.startTime).getTime()
+          item.endTimestamp = new Date(item.endTime).getTime()
+          list.push({
+            key: item.key,
+            cronExpression: item.cronExpression,
+            startTimestamp: item.startTimestamp,
+            endTimestamp: item.endTimestamp,
+          })
+        })
+        console.log('cronListJson', JSON.stringify(cronListJson, null, 2))
         const response = await service.post('/cron/next-timestamp/all', {
-          cronList: cronList.value,
+          cronList: list,
         });
         cronListResult.value = JSON.stringify(response.data, null, 2);
       } catch (error) {
@@ -163,6 +205,18 @@ export default {
     // 获取单个 Cron 表达式的下一个时间戳
     const getNextTimestamp = async () => {
       try {
+        console.log('cronExpression.value', cronExpression.value)
+        console.log('startTimestamp.value', startTimestamp.value)
+        console.log('endTimestamp.value', endTimestamp.value)
+        // 确保值是数字类型
+        const start = Number(startTimestamp.value);
+        const end = Number(endTimestamp.value);
+
+        if (isNaN(start) || isNaN(end)) {
+          console.error('时间戳值无效，请检查输入');
+          return;
+        }
+
         // const [start, end] = timeRange.value || [new Date(), new Date(Date.now() + 86400000)]
         const response = await service.post("/cron/next-timestamp", {
           cronExpression: cronExpression.value,
@@ -231,8 +285,10 @@ export default {
       file,
       cronExpression,
       // timeRange,
-      startTimestamp,
-      endTimestamp,
+      // startTimestamp,
+      startTime,
+      // endTimestamp,
+      endTime,
       shortcuts,
       getNextTimestamp,
       cronList,
