@@ -35,6 +35,7 @@
         </div>
       </div>
     </div>
+    <router-view />
   </div>
 </template>
 
@@ -79,7 +80,7 @@ export default {
         children: []
       }
 
-      router.getRoutes().filter(route => route.name !== 'home' && route?.isRoot).forEach(route => {
+      router.getRoutes().filter(route => route.name !== 'home' && route?.meta?.isRoot).forEach(route => {
         routerJson.children.push({
           id: index,
           position: index % 2 === 1 ? "left" : "right",
@@ -89,6 +90,8 @@ export default {
         });
         index++
       });
+      console.log('getRoutes', router.getRoutes().filter(route => route.name !== 'home'))
+      console.log('routerJson', routerJson)
       featureGroup.value.push(routerJson);
 
       const homeRoute = router.getRoutes().find(route => route.name === 'home')
