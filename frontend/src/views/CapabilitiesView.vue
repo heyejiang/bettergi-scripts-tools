@@ -87,7 +87,24 @@
     <div class="section">
       <div class="card">
         <h3 class="section-title">OCR 图片字节组</h3>
-        <input type="file" @change="handleFileUpload" class="file-input"/>
+<!--        <input type="file" @change="handleFileUpload" class="file-input"/>-->
+
+        <div class="file-upload-container">
+          <div class="file-upload-area" @click="triggerFileInput"  @dragover.prevent @drop.prevent="handleDrop">
+            <input
+                type="file"
+                ref="fileInput"
+                @change="handleFileUpload"
+                class="file-input"
+                accept=".png,.jpg,.jpeg,.pdf"
+            />
+            <!-- 限制文件类型 -->
+            <div class="upload-icon">📁</div>
+            <p class="upload-text">点击选择文件或拖拽到此处</p>
+            <p class="file-info" v-if="fileName">已选择文件：{{ fileName }}</p>
+          </div>
+        </div>
+
         <button @click="performOcr" class="btn primary">执行 OCR 识别</button>
         <label class="label">返回结果:</label>
         <div class="result-all">
@@ -110,7 +127,6 @@ export default {
   setup() {
     const cronResult = ref('')
     const ocrResult = ref('')
-    const file = ref(null)
     const cronExpression = ref('0 0 * * * ?')
     // const timeRange = ref([])
     const defaultTime = new Date(2000, 1, 1, 12, 0, 0)
@@ -171,51 +187,20 @@ export default {
       }
     };
 
-    // 快捷选项
-    const shortcuts = [
-      {
-        text: '最近一周',
-        value: () => {
-          const end = new Date()
-          const start = new Date()
-          start.setDate(start.getDate() - 7)
-          return [start, end]
-        },
-      },
-      {
-        text: '最近一个月',
-        value: () => {
-          const end = new Date()
-          const start = new Date()
-          start.setMonth(start.getMonth() - 1)
-          return [start, end]
-        },
-      },
-      {
-        text: '最近三个月',
-        value: () => {
-          const end = new Date()
-          const start = new Date()
-          start.setMonth(start.getMonth() - 3)
-          return [start, end]
-        },
-      },
-    ]
-
     // 获取单个 Cron 表达式的下一个时间戳
     const getNextTimestamp = async () => {
       try {
-        console.log('cronExpression.value', cronExpression.value)
-        console.log('startTimestamp.value', startTimestamp.value)
-        console.log('endTimestamp.value', endTimestamp.value)
-        // 确保值是数字类型
-        const start = Number(startTimestamp.value);
-        const end = Number(endTimestamp.value);
-
-        if (isNaN(start) || isNaN(end)) {
-          console.error('时间戳值无效，请检查输入');
-          return;
-        }
+        // console.log('cronExpression.value', cronExpression.value)
+        // console.log('startTimestamp.value', startTimestamp.value)
+        // console.log('endTimestamp.value', endTimestamp.value)
+        // // 确保值是数字类型
+        // const start = Number(startTimestamp.value);
+        // const end = Number(endTimestamp.value);
+        //
+        // if (isNaN(start) || isNaN(end)) {
+        //   console.error('时间戳值无效，请检查输入');
+        //   return;
+        // }
 
         // const [start, end] = timeRange.value || [new Date(), new Date(Date.now() + 86400000)]
         const response = await service.post("/cron/next-timestamp", {
@@ -228,11 +213,33 @@ export default {
         console.error('Error fetching next timestamp:', error)
       }
     }
+    const fileInput = ref(null);
+    const file = ref(null);
+    const fileName = ref('');
 
+    const triggerFileInput = () => {
+      if (fileInput.value) {
+        fileInput.value.click(); // 触发 input 点击
+      } else {
+        console.error('fileInput is not available');
+      }
+    };
     // 处理文件上传
     const handleFileUpload = (event) => {
-      file.value = event.target.files[0]
-    }
+      const selectedFile = event.target.files[0];
+      if (selectedFile) {
+        file.value = selectedFile;
+        fileName.value = selectedFile.name;
+      }
+    };
+
+    const handleDrop = (event) => {
+      const droppedFile = event.dataTransfer.files[0];
+      if (droppedFile) {
+        file.value = droppedFile;
+        fileName.value = droppedFile.name;
+      }
+    };
 
     // 执行 OCR 识别
     const performOcr = async () => {
@@ -282,20 +289,24 @@ export default {
       copyToClipboard,
       cronResult,
       ocrResult,
-      file,
       cronExpression,
       // timeRange,
       // startTimestamp,
       startTime,
       // endTimestamp,
       endTime,
-      shortcuts,
+      // shortcuts,
       getNextTimestamp,
       cronList,
       cronListResult,
       cronListAddItem,
       cronListRemoveItem,
       cronListSubmit,
+      file,
+      fileName,
+      fileInput,
+      triggerFileInput,
+      handleDrop,
       handleFileUpload,
       performOcr,
     }
@@ -542,5 +553,49 @@ export default {
 .copy-btn:hover {
   background-color: #2980b9;
 }
+.file-upload-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 20px 0;
+}
 
+.file-upload-area {
+  width: 100%;
+  max-width: 400px;
+  padding: 30px;
+  border: 2px dashed #3498db;
+  border-radius: 12px;
+  text-align: center;
+  background-color: #f9f9f9;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.file-upload-area:hover {
+  background-color: #e3f2fd;
+  border-color: #2980b9;
+}
+
+.file-input {
+  display: none; /* 隐藏默认 input */
+}
+
+.upload-icon {
+  font-size: 2rem;
+  color: #3498db;
+  margin-bottom: 10px;
+}
+
+.upload-text {
+  font-size: 1rem;
+  color: #2c3e50;
+  margin: 0;
+}
+
+.file-info {
+  font-size: 0.9rem;
+  color: #7f8c8d;
+  margin-top: 10px;
+}
 </style>
