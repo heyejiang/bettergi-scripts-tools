@@ -1,65 +1,56 @@
 <template>
-  <div>
-    <h1>BetterGI Script Tools</h1>
-
+  <div class="container">
+    <h1 class="title">BetterGI Script Tools</h1>
 
     <!-- Cron 相关功能 -->
-    <div>
-      <div class="cron-item-component">
-        <h2>Cron 功能</h2>
-        <label>
-          Cron 表达式:
-          <input v-model="cronExpression" placeholder="例如: 0 0 * * * ?"/>
-        </label>
-        <br/>
-<!--          时间范围:-->
-<!--          <el-date-picker-->
-<!--              v-model="timeRange"-->
-<!--              type="datetimerange"-->
-<!--              range-separator="至"-->
-<!--              start-placeholder="开始时间"-->
-<!--              end-placeholder="结束时间"-->
-<!--              :shortcuts="shortcuts"-->
-<!--          />-->
-        <input v-model.number="startTimestamp" type="number" placeholder="开始时间戳"/>
-        <input v-model.number="endTimestamp" type="number" placeholder="结束时间戳"/>
-        <br/>
-        <button @click="getNextTimestamp">获取下一个时间戳</button>
-        <pre>{{ cronResult }}</pre>
-      </div>
-      <div class="cron-list-component">
-        <h2>Cron 任务列表</h2>
-        <div v-for="(item, index) in cronList" :key="index" class="cron-item">
-          <input v-model="item.key" placeholder="任务标识唯一值"/>
-          <input v-model="item.cronExpression" placeholder="Cron 表达式 如: 0 0 * * * ?"/>
-          <input v-model.number="item.startTimestamp" type="number" placeholder="开始时间戳"/>
-          <input v-model.number="item.endTimestamp" type="number" placeholder="结束时间戳"/>
-<!--          <el-date-picker
-              v-model="timeRange"
-              type="datetimerange"
-              range-separator="至"
-              start-placeholder="开始时间"
-              end-placeholder="结束时间"
-              :shortcuts="shortcuts"
-          />-->
-          <button @click="cronListRemoveItem(index)">删除</button>
+    <div class="section">
+      <div class="card">
+        <h2 class="section-title">Cron 功能</h2>
+        <div class="form-group">
+          <label class="label">Cron 表达式:</label>
+          <input v-model="cronExpression" class="input" placeholder="例如: 0 0 * * * ?" />
         </div>
-        <button @click="cronListAddItem">添加任务</button>
-        <button @click="cronListSubmit">提交</button>
-        <pre>{{ cronListResult }}</pre>
+        <div class="form-group">
+          <label class="label">开始时间戳:</label>
+          <input v-model.number="startTimestamp" class="input" type="number" placeholder="开始时间戳" />
+        </div>
+        <div class="form-group">
+          <label class="label">结束时间戳:</label>
+          <input v-model.number="endTimestamp" class="input" type="number" placeholder="结束时间戳" />
+        </div>
+        <button @click="getNextTimestamp" class="btn primary">获取下一个时间戳</button>
+        <pre class="result">{{ cronResult }}</pre>
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">Cron 任务列表</h2>
+        <div v-for="(item, index) in cronList" :key="index" class="cron-item">
+          <input v-model="item.key" class="input small" placeholder="任务标识唯一值" />
+          <input v-model="item.cronExpression" class="input small" placeholder="Cron 表达式 如: 0 0 * * * ?" />
+          <input v-model.number="item.startTimestamp" class="input small" type="number" placeholder="开始时间戳" />
+          <input v-model.number="item.endTimestamp" class="input small" type="number" placeholder="结束时间戳" />
+          <button @click="cronListRemoveItem(index)" class="btn danger">删除</button>
+        </div>
+        <div class="actions">
+          <button @click="cronListAddItem" class="btn secondary">添加任务</button>
+          <button @click="cronListSubmit" class="btn primary">提交</button>
+        </div>
+        <pre class="result">{{ cronListResult }}</pre>
       </div>
     </div>
 
-
     <!-- OCR 相关功能 -->
-    <div>
-      <h2>OCR 功能</h2>
-      <input type="file" @change="handleFileUpload"/>
-      <button @click="performOcr">执行 OCR 识别</button>
-      <pre>{{ ocrResult }}</pre>
+    <div class="section">
+      <div class="card">
+        <h2 class="section-title">OCR 功能</h2>
+        <input type="file" @change="handleFileUpload" class="file-input" />
+        <button @click="performOcr" class="btn primary">执行 OCR 识别</button>
+        <pre class="result">{{ ocrResult }}</pre>
+      </div>
     </div>
   </div>
 </template>
+
 
 <script>
 import {ref} from 'vue'
@@ -76,12 +67,12 @@ export default {
     const startTimestamp = ref(Date.now())
     const endTimestamp = ref(Date.now() + 86400000)
     const cronList = ref([
-      // {
-      //   key: 'task1',
-      //   cronExpression: '0 0 * * * ?',
-      //   startTimestamp: Date.now(),
-      //   endTimestamp: Date.now() + 86400000,
-      // },
+      {
+        key: 'task1',
+        cronExpression: '0 0 * * * ?',
+        startTimestamp: Date.now(),
+        endTimestamp: Date.now() + 86400000,
+      },
     ]);
     const cronListResult = ref('');
 
@@ -215,5 +206,122 @@ pre {
   padding: 10px;
   border-radius: 5px;
   white-space: pre-wrap;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+.title {
+  text-align: center;
+  color: #333;
+  margin-bottom: 30px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+}
+
+.section-title {
+  font-size: 1.5em;
+  margin-bottom: 15px;
+  color: #444;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #555;
+}
+
+.input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1em;
+}
+
+.input:focus {
+  border-color: #007bff;
+  outline: none;
+  box-shadow: 0 0 4px rgba(0, 123, 255, 0.3);
+}
+
+.small {
+  width: calc(100% - 120px);
+  display: inline-block;
+  margin-right: 10px;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1em;
+  transition: background 0.3s ease;
+}
+
+.primary {
+  background: #007bff;
+  color: #fff;
+}
+
+.primary:hover {
+  background: #0056b3;
+}
+
+.secondary {
+  background: #6c757d;
+  color: #fff;
+}
+
+.secondary:hover {
+  background: #5a6268;
+}
+
+.danger {
+  background: #dc3545;
+  color: #fff;
+}
+
+.danger:hover {
+  background: #bd2130;
+}
+
+.actions {
+  margin-top: 15px;
+  display: flex;
+  gap: 10px;
+}
+
+.file-input {
+  margin-bottom: 15px;
+}
+
+.result {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 4px;
+  white-space: pre-wrap;
+  margin-top: 15px;
 }
 </style>
