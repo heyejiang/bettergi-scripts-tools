@@ -5,8 +5,8 @@ const routes = [
     {
         path: '/',
         name: 'home',
-        isRoot: true,
         meta: {
+            isRoot: true,
             title: '首页',
             desc: '首页',
             asSubParentTitle: '主页功能',
@@ -14,16 +14,20 @@ const routes = [
         },
         component: () => import('@main/views/HomeView'),
         children: [
-            {
-                path: '/bgi/ui', name: 'bgi', meta: {
-                    title: '测试',
-                    desc: '测试',
-                    asSubParentTitle: '测试功能',
-                    icon: 'icon-home'
-                },
-            }
         ]
     },
+    {
+        path: '/capabilities',
+        name: 'capabilities',
+        component: () => import('@main/views/CapabilitiesView'),
+        meta: {
+            isRoot: true,
+            title: '程序功能演示',
+            desc: '程序功能演示',
+            asSubParentTitle: '程序功能演示',
+            // icon: 'icon-home'
+        },
+    }
     // 其他路由...
 ]
 
