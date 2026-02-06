@@ -1,1 +1,0 @@
-import{_ as o,c as s,a as t,o as c}from"./index-4WhkhxIE.js";const n={},r={class:"home"};function a(_,e){return c(),s("div",r,[...e[0]||(e[0]=[t("h2",null,"HOME 欢迎使用扩展工具",-1)])])}const d=o(n,[["render",a]]);export{d as default};
