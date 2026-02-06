@@ -1,6 +1,6 @@
 <template xmlns="http://www.w3.org/1999/html">
   <div class="container">
-    <h1 class="title">BetterGI Script Tools</h1>
+    <h1 class="title">BetterGI Script Tools@{{ currentRoute?.meta?.title || '未知标题' }}</h1>
 
     <!-- Cron 相关功能 -->
     <h2 class="section-title">Cron 功能</h2>
@@ -87,10 +87,10 @@
     <div class="section">
       <div class="card">
         <h3 class="section-title">OCR 图片字节组</h3>
-<!--        <input type="file" @change="handleFileUpload" class="file-input"/>-->
+        <!--        <input type="file" @change="handleFileUpload" class="file-input"/>-->
 
         <div class="file-upload-container">
-          <div class="file-upload-area" @click="triggerFileInput"  @dragover.prevent @drop.prevent="handleDrop">
+          <div class="file-upload-area" @click="triggerFileInput" @dragover.prevent @drop.prevent="handleDrop">
             <input
                 type="file"
                 ref="fileInput"
@@ -121,10 +121,12 @@
 import {ref} from 'vue'
 import service from "@utils/request";
 import {ElMessage} from "element-plus";
+import router from "@router/router";
 
 export default {
   name: 'CapabilitiesView',
   setup() {
+    const currentRoute = router.currentRoute
     const cronResult = ref('')
     const ocrResult = ref('')
     const cronExpression = ref('0 0 * * * ?')
@@ -286,6 +288,7 @@ export default {
     };
 
     return {
+      currentRoute,
       copyToClipboard,
       cronResult,
       ocrResult,
@@ -499,7 +502,8 @@ export default {
 }
 
 .list-item {
-  background: #91dcd6 !important;
+  /*background: #91dcd6 !important;*/
+  background: linear-gradient(135deg, #c22dd1, #91dcd6) !important; /* 添加渐变背景 */
   border-radius: 12px !important; /* 添加圆角 */
   padding: 10px !important; /* 可选：增加内边距以提升视觉效果 */
   box-sizing: border-box;
@@ -553,6 +557,7 @@ export default {
 .copy-btn:hover {
   background-color: #2980b9;
 }
+
 .file-upload-container {
   display: flex;
   justify-content: center;
