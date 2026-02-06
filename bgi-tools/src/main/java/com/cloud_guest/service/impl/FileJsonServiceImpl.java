@@ -6,11 +6,13 @@ import cn.hutool.extra.spring.SpringUtil;
 import cn.hutool.json.JSONUtil;
 import com.cloud_guest.domain.Cache;
 import com.cloud_guest.redis.service.RedisService;
+import com.cloud_guest.service.CacheService;
 import com.cloud_guest.service.FileJsonService;
 import com.cloud_guest.utils.LocalCacheUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,9 +23,8 @@ import java.util.stream.Collectors;
  */
 @Service
 public class FileJsonServiceImpl implements FileJsonService {
-    @Value("${spring.redis.mode:none}")
-    private String redisMode;
-    public static final String REDIS_FILE_JSON_KEY = "redis:file:json:";
+    @Resource
+    private CacheService cacheService;
 
     @Override
     public String save(String filename, byte[] bytes) {
@@ -36,12 +37,7 @@ public class FileJsonServiceImpl implements FileJsonService {
             Cache<String> cache = new Cache<>();
             cache.setType("json");
             cache.setData(json);
-            if ("none".equals(redisMode)) {
-                LocalCacheUtils.put(id, JSONUtil.toJsonStr(cache));
-            } else {
-                RedisService bean = SpringUtil.getBean(RedisService.class);
-                bean.save(REDIS_FILE_JSON_KEY + id, JSONUtil.toJsonStr(cache));
-            }
+            cacheService.save(id, JSONUtil.toJsonStr(cache));
             return id;
         } finally {
             FileUtil.del(path);
@@ -50,28 +46,12 @@ public class FileJsonServiceImpl implements FileJsonService {
 
     @Override
     public Cache<String> find(String id) {
-        String o;
-        if ("none".equals(redisMode)) {
-            o = (String) LocalCacheUtils.get(id);
-        } else {
-            RedisService bean = SpringUtil.getBean(RedisService.class);
-            o = (String) bean.get(REDIS_FILE_JSON_KEY + id);
-        }
-        Cache<String> cache = JSONUtil.toBean(o, Cache.class);
+        Cache<String> cache = cacheService.find(id);
         return cache;
     }
 
     @Override
     public boolean del(List<String> ids) {
-        if ("none".equals(redisMode)) {
-            LocalCacheUtils.removeList(ids);
-        } else {
-            RedisService bean = SpringUtil.getBean(RedisService.class);
-            ids = ids.stream()
-                    .map(id -> REDIS_FILE_JSON_KEY + id)
-                    .collect(Collectors.toList());
-            bean.delList(ids);
-        }
-        return true;
+        return cacheService.delList(ids);
     }
 }
