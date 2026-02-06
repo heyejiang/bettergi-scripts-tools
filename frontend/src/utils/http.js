@@ -25,11 +25,4 @@ export function request(path, options = {}) {
         ...options
     })
 }
-// 示例 API
-// export function getNodeList() {
-//     return request('/node/list', { method: 'GET' })
-// }
-//
-// export function addNode(data) {
-//     return request('/node/add', { method: 'POST', data })
-// }
+
