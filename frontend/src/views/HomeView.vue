@@ -90,8 +90,8 @@ export default {
         });
         index++
       });
-      console.log('getRoutes', router.getRoutes().filter(route => route.name !== 'home'))
-      console.log('routerJson', routerJson)
+      // console.log('getRoutes', router.getRoutes().filter(route => route.name !== 'home'))
+      // console.log('routerJson', routerJson)
       featureGroup.value.push(routerJson);
 
       const homeRoute = router.getRoutes().find(route => route.name === 'home')
