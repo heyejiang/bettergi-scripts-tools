@@ -81,3 +81,7 @@ gradle-app.setting
 */package-lock.json
 */node_modules
 /frontend/node/
+/cache/
+*/cache/
+/temp
+*/temp
