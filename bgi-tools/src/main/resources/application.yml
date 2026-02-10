@@ -69,6 +69,7 @@ spring:
   config:
     import:
       - optional:file:./application-prod.yml
+      - optional:file:/app/application-prod.yml #docker加载异常处理
   profiles:
     active: prod
     #  mvc:
