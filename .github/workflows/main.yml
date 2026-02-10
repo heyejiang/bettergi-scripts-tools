@@ -522,8 +522,9 @@ jobs:
               cat > "$DOCKER_FILE_NAME" << EOF
               FROM eclipse-temurin:${{ needs.build-and-release-jar.outputs.java_version }}-jre-alpine
               VOLUME /tmp
-              COPY *.jar /app/app.jar
-              ENTRYPOINT ["java","-jar","/app/app.jar"]
+              WORKDIR /app
+              COPY *.jar app.jar
+              ENTRYPOINT ["java","-jar","app.jar"]
           EOF
               if [ -f "$DOCKER_FILE_NAME" ]; then
                 echo "$DOCKER_FILE_NAME created successfully"
