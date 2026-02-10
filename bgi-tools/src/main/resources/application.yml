@@ -103,8 +103,17 @@ spring:
     #安全
     username:  #默认为空
     password:  #默认为空
-
+#需要验证的接口设置token
+check:
+  token: #注意：其中一项为空时将不会校验
+    name:  # token名称 默认为空
+    value: # token值 默认为空
 bgi-tools:
   version: 0.0.4
-
+#设置默认账号密码
+auth:
+  enabled: true
+  users:
+    - username: bgi_tools
+      password: bgi_tools
 

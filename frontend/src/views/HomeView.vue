@@ -14,11 +14,18 @@
             <div
                 v-for="item in getItemsByPosition(group.children, 'left')"
                 :key="item.id"
+                :style="{ backgroundColor: buttonBackgrounds[item.id] }"
                 :class="['feature-item', getItemClass(item)]"
             >
               <!--              <span class="icon">{{ getIcon(item) }}</span>-->
               <span v-html="getIcon(item)" class="icon"></span>
-              <button class="name" @click="togo(item)">{{ item.name }}</button>
+              <button class="name" v-if="item.isUi" @click="togo(item)"
+              >
+                {{ item.name }}
+              </button>
+              <button class="name" v-else @click="toClick(item)"
+              >{{ item.name }}
+              </button>
             </div>
           </div>
 
@@ -27,11 +34,17 @@
             <div
                 v-for="item in getItemsByPosition(group.children, 'right')"
                 :key="item.id"
+                :style="{ backgroundColor: buttonBackgrounds[item.id] }"
                 :class="['feature-item', getItemClass(item)]"
             >
               <!--              <span class="icon">{{ getIcon(item) }}</span>-->
               <span v-html="getIcon(item)" class="icon"></span>
-              <button class="name" @click="togo(item)">{{ item.name }}</button>
+              <button class="name" v-if="item.isUi" @click="togo(item)"
+              >{{ item.name }}
+              </button>
+              <button class="name" v-else @click="toClick(item)"
+              >{{ item.name }}
+              </button>
             </div>
           </div>
         </div>
@@ -55,6 +68,7 @@ const list = [
   // {isLink: true, name: 'API 调试链接', value: 'API 调试链接'},
   {isSwagger: true, name: 'Swagger 文档入口', value: 'doc.html'},
   // {isRote: true, name: '路由管理面板', value: '路由管理面板'},
+  {name: '退出登录', value: 'Logout'},
 ]
 let index = 1
 let initJson = {
@@ -68,26 +82,45 @@ list.forEach(item => {
     isRote: item.isRote,
     isLink: item.isLink,
     isSwagger: item.isSwagger,
-    icon: undefined,
+    isUi: (item.isSwagger || item.isRote || item.isLink),
+    icon: item.icon || iconAsMap.get(item.value),
     name: item.name,
     value: item.value
   });
   index++
 })
 featureGroup.value.push(initJson);
+// 存储每个按钮的随机背景色
+const buttonBackgrounds = ref({});
+
+// 生成随机浅色函数
+const getRandomLightColor = () => {
+  const r = Math.floor(Math.random() * 106) + 150; // 150-255
+  const g = Math.floor(Math.random() * 106) + 150; // 150-255
+  const b = Math.floor(Math.random() * 106) + 150; // 150-255
+  return `rgb(${r}, ${g}, ${b})`;
+};
+const lightColors = [
+  'rgba(116,181,181,0.56)',
+  '#e1c7ba',
+  'rgba(255,141,195,0.54)',
+  '#ced4da'
+];
+
 onMounted(() => {
   let index = 1
   let routerJson = {
-    title: '基础路由功能列表',
+    title: '扩展功能列表',
     children: []
   }
 
-  router.getRoutes().filter(route => route.name !== 'home' && route?.meta?.isRoot).forEach(route => {
+  router.getRoutes().filter(route => route.name !== 'home' && route.name !== 'login' && route?.meta?.isRoot).forEach(route => {
     routerJson.children.push({
       id: index,
       position: index % 2 === 1 ? "left" : "right",
       isRote: true,
-      icon: route?.meta?.icon,
+      isUi: true,
+      icon: route?.meta?.icon || iconAsMap.get(route?.name),
       name: route?.meta?.title,
       value: route.path
     });
@@ -109,7 +142,8 @@ onMounted(() => {
       id: index,
       position: index % 2 === 1 ? "left" : "right",
       isRote: true,
-      icon: route?.meta?.icon,
+      isUi: true,
+      icon: route?.meta?.icon || iconAsMap.get(route?.name),
       name: route?.meta?.title,
       value: route.path
     });
@@ -117,6 +151,15 @@ onMounted(() => {
   });
   featureGroup.value.push(homeJson);
 
+  // 初始化按钮背景色
+  let colorIndex = 0;
+
+  featureGroup.value.forEach((group) => {
+    group.children.forEach((item) => {
+      buttonBackgrounds.value[item.id] = lightColors[colorIndex % lightColors.length];
+      colorIndex++;
+    });
+  });
 });
 
 // 获取图标
@@ -186,6 +229,13 @@ const togo = async (item) => {
     window.open(item.value, '_blank');
   }
 };
+const toClick = async (item) => {
+  const value = item.value;
+  if (value === 'Logout') {
+    localStorage.removeItem('bgi_tools_token')
+    router.push('/login')
+  }
+}
 </script>
 <style scoped>
 

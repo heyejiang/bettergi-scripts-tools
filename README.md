@@ -31,8 +31,9 @@ server:
 ws:
   url: ws://localhost:8081/ws #可忽略
   access-token-name: access-token   
-#多实例运行支持(存储需要从本地改为远程 如 spring.redis.mode=single)  
+#多实例运行支持(存储需要从本地改为远程 如 spring.redis.mode=single)   
 spring:
+  #redis 集群支持
   redis:
     mode: none # none:不使用redis，single:使用单体,cluster:使用集群，sentinel:使用哨兵
     #单体
@@ -52,7 +53,18 @@ spring:
         - 192.168.6.128:7001
     #安全
     username:  #默认为空
-    password:  #默认为空  
+    password:  #默认为空
+#需要验证的接口设置token
+check:
+  token: #注意：其中一项为空时将不会校验
+    name:  # token名称 默认为空 自行修改
+    value: # token值 默认为空 自行修改
+#设置默认账号密码 自行修改
+auth:
+  users:
+    - username: bgi_tools
+      password: bgi_tools
+  
 ```
 
 ### 3. 运行
@@ -68,7 +80,7 @@ java -jar xxxx.jar
 ```
 
 #### 3.部署docker
-
+***`先新建 /path/to/application-prod.yml 文件，将 application-prod.yml 文件内容复制到 /path/to/application-prod.yml 文件中`***
 ```shell
 docker pull ghcr.io/kirito520asuna/bettergi-scripts-tools:latest
 docker run -d -p 8081:8081 -v /path/to/application-prod.yml:/app/application-prod.yml --name bettergi-script-tools ghcr.io/kirito520asuna/bettergi-script-tools:latest
