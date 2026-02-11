@@ -322,7 +322,16 @@ const domainsDefault = [
         ]
     }
 ]
-
+const selectedAsDaysMap=() => {
+    const selectedAsDaysMap = new Map();
+    //1--days 0,1,4 周日,1,4
+    //2--days 0,2,5 周日,2,5
+    //3--days 0,3,6 周日,3,6
+    selectedAsDaysMap.set('1', [0, 1, 4])
+    selectedAsDaysMap.set('2', [0, 2, 5])
+    selectedAsDaysMap.set('3', [0, 3, 6])
+    return selectedAsDaysMap
+}
 
 const iconAsMapDefault = () => {
     const iconAsMap = new Map();
@@ -4666,4 +4675,5 @@ TkSuQmCC" />
 export {
     domainsDefault,
     iconAsMapDefault,
+    selectedAsDaysMap
 }
