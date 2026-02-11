@@ -3,7 +3,7 @@ import {ref, computed, watch, watchEffect, onMounted} from 'vue'
 import {ElMessage} from "element-plus";
 import {getBaseJsonAll, getUidJson, postUidJson, removeUidList} from "@api/domain/autoPlan";
 import {CopyToClipboard} from "@utils/local.js";
-import {domainsDefault, domainTypesDefault, selectedAsDaysMap} from "@utils/defaultdata.js";
+import {domainsDefault, domainTypesDefault, excludeDomainTypesDefault, selectedAsDaysMap} from "@utils/defaultdata.js";
 import router from "@router/router.js";
 // 配置列表 → 核心数据结构改为 array
 const configs = ref([])
@@ -12,6 +12,7 @@ const isLoading = ref(false);
 const defaultDomains = domainsDefault
 const domains = ref([])
 const domainTypes = ref([])
+const excludeDomainTypes = ref(new Array())
 const initDomainTypes = async () => {
   const types = [
     {value: '', label: '请选择类型'}
@@ -21,6 +22,9 @@ const initDomainTypes = async () => {
     types.push({value: item, label: item})
   })
   domainTypes.value = types
+
+  const excludes = excludeDomainTypesDefault()
+  excludeDomainTypes.value.push(...excludes)
 }
 const fetchDomains = async () => {
   isLoading.value = true;
@@ -145,7 +149,7 @@ const domainMap = computed(() => {
   domains.value.forEach(d => map.set(d.name, d))
   return map
 })
-const weekDays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 const showDays = (config, type) => {
   if (type === 'clear') {
     config.days = []
@@ -158,7 +162,10 @@ const showDays = (config, type) => {
 }
 
 function changShowDaysButton(config) {
-  if (config.selectedType !== '圣遗物' && config.autoFight.sundaySelectedValue) {
+  if (config.days && config.days.length > 0) {
+    config.dayName = "已选中:" + config.days.map(dayIndex => weekDays[dayIndex]).join(', ')
+  }
+  if ((!excludeDomainTypes.value.includes(config.selectedType)) && config.autoFight.sundaySelectedValue) {
     // 实时监听 days 与 asDaysMap.get(sundaySelectedValue) 是否相同
     const daysFromMap = asDaysMap.get(config.autoFight.sundaySelectedValue + "");
     if (daysFromMap && Array.isArray(daysFromMap)) {
@@ -226,7 +233,7 @@ const getFinalConfigs = () => {
         index++
       }
     }
-
+    changShowDaysButton(c)
     let json = {
       order: c.order,
       // day: c.day,
@@ -395,7 +402,7 @@ const copyToClipboard = (text) => {
                 </div>
               </div>
 
-              <div class="form-group" v-if="config.selectedType&&config.selectedType!='圣遗物'">
+              <div class="form-group" v-if="config.selectedType&&!excludeDomainTypes.includes(config.selectedType)">
                 <label>材料忽略限时开放：</label>
                 <el-button
                     size="small"
@@ -405,77 +412,77 @@ const copyToClipboard = (text) => {
                   {{ config.showDaysButton ? '启用' : '已启用' }}  <!--加*注意说明-->
                 </el-button>
                 <span style="color: red;">默认包含周日</span>
-              </div>
             </div>
-            <!-- 秘境选择 -->
-            <!-- 新增 type 选择器 -->
-            <div class="form-group">
-              <label>秘境类型：</label>
-              <!--              <select v-model="config.selectedType">
-                            <option value="">请选择类型</option>
-                            <option value="天赋">天赋</option>
-                            <option value="武器">武器</option>
-                            <option value="圣遗物">圣遗物</option>
-                          </select>-->
-              <select v-model="config.selectedType">
-                <option
-                    v-for="type in domainTypes"
-                    :key="type.value"
-                    :value="type.value"
-                >
-                  {{ type.label }}
-                </option>
-              </select>
-            </div>
-            <!-- 秘境选择（根据 selectedType 过滤） -->
-            <div class="form-group">
-              <label>秘境：</label>
-              <select v-model="config.autoFight.domainName">
-                <option value="">请选择秘境</option>
-                <option
-                    v-for="d in filteredDomainsType(config.selectedType)"
-                    :key="d.name"
-                    :value="d.name"
-                >
-                  {{ d.name }}
-                </option>
-              </select>
-            </div>
-            <!-- 物品名称选择（根据 domainName 过滤） -->
-            <div v-if="domainMap.get(config.autoFight.domainName)?.hasOrder" class="form-group">
-              <label>周日/限时材料：</label>
-              <select
-                  v-model="config.autoFight.sundaySelectedValue">
-                <option
-                    v-for="(item,index) in domainMap.get(config.autoFight.domainName)?.list || []"
-                    :key="item"
-                    :value="index + 1"
-                >
-                  {{ item }}
-                </option>
-              </select>
-            </div>
-            <div
-                v-if="(!domainMap.get(config.autoFight.domainName)?.hasOrder)&&(domainMap.get(config.autoFight.domainName)?.list?.length>0)"
-                class="form-group">
-              <label>秘境圣遗物：</label>
-              <ul>
-                <li v-for="item in domainMap.get(config.autoFight.domainName)?.list" :key="item">
-                  {{ item }}
-                </li>
-              </ul>
-            </div>
-            <div class="form-group">
-              <label>队伍名称（可选）：</label>
-              <input class="limited-input" v-model="config.autoFight.partyName" placeholder="队伍1 / 主C+副C+辅助"/>
+          </div>
+          <!-- 秘境选择 -->
+          <!-- 新增 type 选择器 -->
+          <div class="form-group">
+            <label>秘境类型：</label>
+            <!--              <select v-model="config.selectedType">
+                          <option value="">请选择类型</option>
+                          <option value="天赋">天赋</option>
+                          <option value="武器">武器</option>
+                          <option value="圣遗物">圣遗物</option>
+                        </select>-->
+            <select v-model="config.selectedType">
+              <option
+                  v-for="type in domainTypes"
+                  :key="type.value"
+                  :value="type.value"
+              >
+                {{ type.label }}
+              </option>
+            </select>
+          </div>
+          <!-- 秘境选择（根据 selectedType 过滤） -->
+          <div class="form-group">
+            <label>秘境：</label>
+            <select v-model="config.autoFight.domainName">
+              <option value="">请选择秘境</option>
+              <option
+                  v-for="d in filteredDomainsType(config.selectedType)"
+                  :key="d.name"
+                  :value="d.name"
+              >
+                {{ d.name }}
+              </option>
+            </select>
+          </div>
+          <!-- 物品名称选择（根据 domainName 过滤） -->
+          <div v-if="domainMap.get(config.autoFight.domainName)?.hasOrder" class="form-group">
+            <label>周日/限时材料：</label>
+            <select
+                v-model="config.autoFight.sundaySelectedValue">
+              <option
+                  v-for="(item,index) in domainMap.get(config.autoFight.domainName)?.list || []"
+                  :key="item"
+                  :value="index + 1"
+              >
+                {{ item }}
+              </option>
+            </select>
+          </div>
+          <div
+              v-if="(!domainMap.get(config.autoFight.domainName)?.hasOrder)&&(domainMap.get(config.autoFight.domainName)?.list?.length>0)"
+              class="form-group">
+            <label>秘境圣遗物：</label>
+            <ul>
+              <li v-for="item in domainMap.get(config.autoFight.domainName)?.list" :key="item">
+                {{ item }}
+              </li>
+            </ul>
+          </div>
+          <div class="form-group">
+            <label>队伍名称（可选）：</label>
+            <input class="limited-input" v-model="config.autoFight.partyName" placeholder="队伍1 / 主C+副C+辅助"/>
 
-            </div>
-            <div class="form-group">
-              <label>副本轮数：</label>
-              <input class="limited-input" v-model.number="config.autoFight.DomainRoundNum" type="number" min="1"
-                     max="99"
-                     placeholder="建议 1~10"/>
-            </div>
+          </div>
+          <div class="form-group">
+            <label>副本轮数：</label>
+            <input class="limited-input" v-model.number="config.autoFight.DomainRoundNum" type="number" min="1"
+                   max="99"
+                   placeholder="建议 1~10"/>
+          </div>
 
             <!--          <hr/>-->
           </div>

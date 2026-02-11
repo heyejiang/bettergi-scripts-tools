@@ -4678,10 +4678,16 @@ const domainTypesDefault = () => {
     ];
     return domainTypes;
 }
+const excludeDomainTypesDefault = () => {
+    const excludeDomainTypes = new Array()
+    excludeDomainTypes.push('圣遗物')
+    return excludeDomainTypes;
+}
 
 export {
     domainsDefault,
     iconAsMapDefault,
     selectedAsDaysMap,
-    domainTypesDefault
+    domainTypesDefault,
+    excludeDomainTypesDefault
 }
