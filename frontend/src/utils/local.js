@@ -3,7 +3,18 @@ import {ElMessage} from "element-plus";
 const CopyToClipboard = async (text) => {
 
     try {
-        await navigator.clipboard.writeText(text || '');
+        if (typeof navigator !== 'undefined' && navigator.clipboard) {
+            // 现代浏览器使用 Clipboard API
+            await navigator.clipboard.writeText(text || '');
+        } else {
+            // 降级处理：使用 execCommand
+            const textarea = document.createElement('textarea');
+            textarea.value = text || '';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+        }
         /*alert('已复制到剪贴板！');*/
         ElMessage({
             type: 'success',
