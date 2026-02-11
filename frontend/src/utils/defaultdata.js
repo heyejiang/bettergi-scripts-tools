@@ -322,7 +322,7 @@ const domainsDefault = [
         ]
     }
 ]
-const selectedAsDaysMap=() => {
+const selectedAsDaysMap = () => {
     const selectedAsDaysMap = new Map();
     //1--days 0,1,4 周日,1,4
     //2--days 0,2,5 周日,2,5
@@ -4670,10 +4670,18 @@ TkSuQmCC" />
 
     return iconAsMap
 }
-
+const domainTypesDefault = () => {
+    const domainTypes = [
+        '天赋',
+        '武器',
+        '圣遗物'
+    ];
+    return domainTypes;
+}
 
 export {
     domainsDefault,
     iconAsMapDefault,
-    selectedAsDaysMap
+    selectedAsDaysMap,
+    domainTypesDefault
 }

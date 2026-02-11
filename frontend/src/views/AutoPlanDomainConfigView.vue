@@ -1,9 +1,9 @@
 <script setup>
 import {ref, computed, watch, watchEffect, onMounted} from 'vue'
 import {ElMessage} from "element-plus";
-import {getBaseJsonAll, getUidJson, postUidJson,removeUidList} from "@api/domain/autoPlan";
+import {getBaseJsonAll, getUidJson, postUidJson, removeUidList} from "@api/domain/autoPlan";
 import {CopyToClipboard} from "@utils/local.js";
-import {domainsDefault} from "@utils/defaultdata.js";
+import {domainsDefault, domainTypesDefault, selectedAsDaysMap} from "@utils/defaultdata.js";
 import router from "@router/router.js";
 // 配置列表 → 核心数据结构改为 array
 const configs = ref([])
@@ -11,6 +11,17 @@ const isLoading = ref(false);
 // 秘境数据（保持不变，建议单独抽到一个文件）
 const defaultDomains = domainsDefault
 const domains = ref([])
+const domainTypes = ref([])
+const initDomainTypes = async () => {
+  const types = [
+    {value: '', label: '请选择类型'}
+  ]
+  const list = domainTypesDefault();
+  list.forEach(item => {
+    types.push({value: item, label: item})
+  })
+  domainTypes.value = types
+}
 const fetchDomains = async () => {
   isLoading.value = true;
   try {
@@ -75,8 +86,10 @@ const findDomains = async () => {
   } finally {
   }
 };
+const asDaysMap = selectedAsDaysMap()
 onMounted(() => {
   fetchDomains();
+  initDomainTypes()
 })
 // 在 script 中添加跳转逻辑
 const goToHome = () => {
@@ -96,6 +109,7 @@ const addConfig = () => {
     days: [],
     dayName: undefined,
     showDaysSelector: false,   // ← 新增
+    showDaysButton: true,   // ← 新增
     // daysName: [],
     selectedType: "", // 新增字段
     autoFight: {
@@ -132,6 +146,31 @@ const domainMap = computed(() => {
   return map
 })
 const weekDays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+const showDays = (config, type) => {
+  if (type === 'clear') {
+    config.days = []
+  } else if (type === 'showDaysSelector') {
+    config.showDaysSelector = true
+  } else if (type === 'hideDaysSelector') {
+    config.showDaysSelector = false
+  }
+  changShowDaysButton(config);
+}
+
+function changShowDaysButton(config) {
+  if (config.selectedType !== '圣遗物' && config.autoFight.sundaySelectedValue) {
+    // 实时监听 days 与 asDaysMap.get(sundaySelectedValue) 是否相同
+    const daysFromMap = asDaysMap.get(config.autoFight.sundaySelectedValue + "");
+    if (daysFromMap && Array.isArray(daysFromMap)) {
+      config.days.sort((a, b) => a - b)
+      daysFromMap.sort((a, b) => a - b)
+      const currentDays = Array.isArray(config.days) ? config.days : [];
+      const areEqual = JSON.stringify(currentDays) === JSON.stringify(daysFromMap);
+      config.showDaysButton = !areEqual; // 相同则设为 false，否则设为 true
+    }
+  }
+}
+
 // 监听每一项的 domainName 变化 → 自动填充 sundaySelectedValue
 watchEffect(
     () => configs.value,
@@ -152,18 +191,6 @@ watchEffect(
           config.dayName = ''
         }
 
-        // if (config.days && config.days.length > 0) {
-        //   config.daysName = config.days.map(day => {
-        //     let dayName
-        //     if (typeof day === 'number') {
-        //       dayName = weekDays[config.day] || '';
-        //     } else {
-        //       dayName = config.day || '';
-        //     }
-        //     return dayName
-        //   })
-        // }
-
         if (domain.hasOrder && domain.list?.length > 0) {
           // 自动选第一个（也可改为 undefined，让用户手动选）
           if (!config.autoFight.sundaySelectedValue) {
@@ -172,6 +199,8 @@ watchEffect(
         } else {
           config.autoFight.sundaySelectedValue = config.autoFight.sundaySelectedValue || undefined
         }
+
+        changShowDaysButton(config);
       })
     },
     {deep: true}
@@ -252,7 +281,52 @@ const getFinalConfigsToKey = () => {
   }
   return key
 }
+const specifyDate = async (item) => {
+  let pass = false
+  const autoFight = item.autoFight;
+  // console.log("item:",JSON.stringify(item))
+  if (!item.selectedType) {
+    ElMessage({
+      type: 'error',
+      message: `请选择类型！`
+    })
+  } else if (!autoFight.domainName) {
+    ElMessage({
+      type: 'error',
+      message: `请选择秘境！`
+    })
+  } else if (!autoFight.sundaySelectedValue) {
+    ElMessage({
+      type: 'error',
+      message: `请选择材料！`
+    })
+  } else {
+    pass = true
+  }
+  if (pass) {
+    //1--days 0,1,4
+    //2--days 0,2,5
+    //3--days 0,3,6
+    const days = asDaysMap.get(autoFight.sundaySelectedValue + "");
+    if (!days || !Array.isArray(days)) {
+      ElMessage({type: 'error', message: '请选择正确的材料！'});
+      return;
+    }
+    // 类型检查和默认值处理
+    const currentDays = Array.isArray(item.days) ? item.days : [];
+    const newDays = Array.isArray(days) ? days : [];
 
+    // 比较数组内容是否相同
+    const areEqual = JSON.stringify(currentDays) === JSON.stringify(newDays);
+
+    if (!areEqual) {
+      // 更新 days 字段
+      item.days = [...newDays]; // 使用解构避免引用污染
+    }
+    // item.showDaysButton = false
+    changShowDaysButton(item);
+  }
+}
 const copyToClipboard = (text) => {
   CopyToClipboard(text)
 };
@@ -287,6 +361,7 @@ const copyToClipboard = (text) => {
             </div>
 
             <div class="form-group">
+
               <label>执行日：</label>
 
               <div
@@ -315,20 +390,41 @@ const copyToClipboard = (text) => {
                   </label>
                 </div>
                 <div class="actions">
-                  <el-button size="small" @click="config.days = []">清空</el-button>
-                  <el-button size="small" type="primary" @click="config.showDaysSelector = false">確定</el-button>
+                  <el-button size="small" @click="showDays(config,'clear')">清空</el-button>
+                  <el-button size="small" type="primary" @click="showDays(config,'hideDaysSelector')">确定</el-button>
                 </div>
+              </div>
+
+              <div class="form-group" v-if="config.selectedType&&config.selectedType!='圣遗物'">
+                <label>材料忽略限时开放：</label>
+                <el-button
+                    size="small"
+                    :disabled="!config.showDaysButton"
+                    @click="specifyDate(config)"
+                >
+                  {{ config.showDaysButton ? '启用' : '已启用' }}  <!--加*注意说明-->
+                </el-button>
+                <span style="color: red;">默认包含周日</span>
               </div>
             </div>
             <!-- 秘境选择 -->
             <!-- 新增 type 选择器 -->
             <div class="form-group">
               <label>秘境类型：</label>
+              <!--              <select v-model="config.selectedType">
+                            <option value="">请选择类型</option>
+                            <option value="天赋">天赋</option>
+                            <option value="武器">武器</option>
+                            <option value="圣遗物">圣遗物</option>
+                          </select>-->
               <select v-model="config.selectedType">
-                <option value="">请选择类型</option>
-                <option value="天赋">天赋</option>
-                <option value="武器">武器</option>
-                <option value="圣遗物">圣遗物</option>
+                <option
+                    v-for="type in domainTypes"
+                    :key="type.value"
+                    :value="type.value"
+                >
+                  {{ type.label }}
+                </option>
               </select>
             </div>
             <!-- 秘境选择（根据 selectedType 过滤） -->
@@ -397,9 +493,9 @@ const copyToClipboard = (text) => {
       </div>
     </div>
     <!-- 在 template 最后添加 -->
-<div class="fixed-footer">
-  <button @click="goToHome" class="btn secondary">🏠 返回主页</button>
-</div>
+    <div class="fixed-footer">
+      <button @click="goToHome" class="btn secondary">🏠 返回主页</button>
+    </div>
 
   </div>
 </template>
@@ -768,6 +864,12 @@ h2 {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.el-button.is-disabled {
+  background-color: #e0e0e0;
+  color: #999;
+  cursor: not-allowed;
 }
 
 </style>
