@@ -1,9 +1,9 @@
 import {ElMessage} from "element-plus";
 
-const CopyToClipboard = (text) => {
+const CopyToClipboard = async (text) => {
 
     try {
-        navigator.clipboard.writeText(text || '');
+        await navigator.clipboard.writeText(text || '');
         /*alert('已复制到剪贴板！');*/
         ElMessage({
             type: 'success',
