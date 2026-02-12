@@ -118,8 +118,8 @@ networks:
 ```
 ## UI界面(0.0.4以上版本)
 ```text
-默认地址：http://localhost:8081/bgi/
-动态地址：http://127.0.0.1:${server.port:8080}${server.servlet.context-path:/}/
+默认地址：http://localhost:8081/bgi/ui
+动态地址：http://127.0.0.1:${server.port:8080}${server.servlet.context-path:/}/ui
 ```
 ## swagger 文档地址
 
