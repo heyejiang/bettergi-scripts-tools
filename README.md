@@ -8,7 +8,7 @@ bettergi-script-tools 是一个基于 bettergi-script 的工具集，提供了�
 - 支持 WebSocket 请求的代理
 - 支持 Cron 表达式解析
 
-详情请运行后查看UI(内置文档) http://localhost:8081/bgi/
+详情请运行后查看UI(内置文档) http://localhost:8081/bgi/ui
 详情请运行后查看文档 http://localhost:8081/bgi/doc.html
 
 ## 使用
