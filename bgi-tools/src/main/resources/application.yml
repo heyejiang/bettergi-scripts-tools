@@ -120,3 +120,6 @@ auth:
     - username: bgi_tools
       password: bgi_tools
 
+logging:
+  level:
+     com.cloud_guest: debug

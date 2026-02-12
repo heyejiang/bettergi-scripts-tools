@@ -27,7 +27,7 @@ public class WebConfig implements WebMvcConfigurer {
     }
 
     private static void addUiResource(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/ui/**", "/ui/")
+        registry.addResourceHandler("/ui/**", "/ui/","/ui")
                 .addResourceLocations("classpath:/static/ui/")
                 .resourceChain(true)
                 .addResolver(new PathResourceResolver() {
