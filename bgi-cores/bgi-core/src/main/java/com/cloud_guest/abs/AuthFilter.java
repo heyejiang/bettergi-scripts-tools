@@ -6,7 +6,9 @@ import cn.hutool.extra.spring.SpringUtil;
 import com.cloud_guest.properties.auth.AuthProperties;
 import com.cloud_guest.utils.jwt.JwtUtil;
 import org.springframework.http.HttpHeaders;
+import org.springframework.util.AntPathMatcher;
 
+import javax.servlet.Filter;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -15,8 +17,27 @@ import javax.servlet.http.HttpServletResponse;
  * @Date 2026/2/10 12:54:47
  * @Description
  */
-public interface AuthFilter {
-
+public interface AuthFilter extends Filter {
+/**
+ * 获取需要保护的路径列表
+ * @return 返回一个包含需要保护路径的字符串数组
+ */
+    default String[] fetchProtectedPaths() {
+        // 定义需要保护的路径，使用逗号分隔，然后分割成数组
+        String[] protectedPaths = "jwt/**".split(",");
+        return protectedPaths;
+    }
+/**
+ * 获取一个AntPathMatcher实例的默认方法
+ * AntPathMatcher是Spring框架中用于匹配URL路径的工具类
+ * 支持通配符和正则表达式进行路径匹配
+ *
+ * @return 返回一个新的AntPathMatcher实例
+ */
+    default AntPathMatcher fetchPathMatcher() {
+    // 创建并返回一个新的AntPathMatcher对象
+        return new AntPathMatcher();
+    }
     /**
      * 检查token是否合法
      *
@@ -38,13 +59,13 @@ public interface AuthFilter {
             token = token.trim();
 
             if (StrUtil.isNotBlank(token)) {
-                setToken(token);
+                return setToken(token);
             }
         }
-        return true;
+        return false;
     }
 
-    default void setToken(String token) {
+    default boolean setToken(String token) {
         //JwtUtil jwtUtil = SpringUtil.getBean(JwtUtil.class);
         //if (jwtUtil.validateToken(token)) {
         //    String username = jwtUtil.getUsernameFromToken(token);
@@ -53,9 +74,10 @@ public interface AuthFilter {
         //            username, null, null);
         //    SecurityContextHolder.getContext().setAuthentication(auth);
         //}
+        return true;
     }
 
-    default void checkTokenLogin(HttpServletRequest request, HttpServletResponse response) {
-        checkToken(request, response);
+    default boolean checkTokenLogin(HttpServletRequest request, HttpServletResponse response) {
+       return checkToken(request, response);
     }
 }
