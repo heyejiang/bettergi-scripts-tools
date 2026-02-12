@@ -24,8 +24,10 @@
             type="primary"
             native-type="submit"
             class="login-button"
+            :loading="isLoading"
+            :disabled="isLoading"
         >
-          登录
+          {{ isLoading ? '登录中...' : '登录' }} <!-- 动态显示按钮文本 -->
         </el-button>
       </el-form>
     </el-card>
@@ -44,7 +46,10 @@ const form = ref({
   password: ''
 })
 
+// 新增登录状态变量
+const isLoading = ref(false)
 const handleLogin = async () => {
+  isLoading.value = true // 开始登录时设置为 true
   try {
     const res = await login(form.value.username, form.value.password)
     const token = res.token
@@ -53,6 +58,8 @@ const handleLogin = async () => {
     router.push('/')
   } catch (err) {
     ElMessage.error(err.response?.data || '登录失败')
+  }finally {
+    isLoading.value = false // 登录完成或失败后设置为 false
   }
 }
 </script>

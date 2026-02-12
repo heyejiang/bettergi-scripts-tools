@@ -164,6 +164,8 @@ const showDays = (config, type) => {
 function changShowDaysButton(config) {
   if (config.days && config.days.length > 0) {
     config.dayName = "已选中:" + config.days.map(dayIndex => weekDays[dayIndex]).join(', ')
+  }else if (config.days && config.days.length <= 0){
+    config.dayName = undefined
   }
   if ((!excludeDomainTypes.value.includes(config.selectedType)) && config.autoFight.sundaySelectedValue) {
     // 实时监听 days 与 asDaysMap.get(sundaySelectedValue) 是否相同
