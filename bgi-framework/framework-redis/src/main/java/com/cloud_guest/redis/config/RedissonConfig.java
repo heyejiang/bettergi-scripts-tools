@@ -47,6 +47,7 @@ public class RedissonConfig implements AbsRedissonConfig {
     private Environment env;
 
     @Bean
+    @Lazy
     public RedissonClient redissonClient() {
         return initRedissonClient();
     }
@@ -56,6 +57,7 @@ public class RedissonConfig implements AbsRedissonConfig {
     }
 
     @Bean
+    @Lazy
     @Primary
     @SuppressWarnings(value = {"unchecked", "rawtypes"})
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
@@ -64,6 +66,7 @@ public class RedissonConfig implements AbsRedissonConfig {
 
 
     @Bean
+    @Lazy
     @ConditionalOnExpression("${ip.enable:false}")
     @ConditionalOnMissingBean(BanConfiguration.class)
     public BanConfiguration banConfiguration() {
@@ -71,6 +74,7 @@ public class RedissonConfig implements AbsRedissonConfig {
     }
 
     @Bean
+    @Lazy
     @ConditionalOnBean({RedissonClient.class, BanConfiguration.class})
     @ConditionalOnMissingBean(BanManager.class)
     public BanManager banManager() {
@@ -78,6 +82,7 @@ public class RedissonConfig implements AbsRedissonConfig {
     }
 
     @Bean
+    @Lazy
     @ConditionalOnMissingBean(RedisService.class)
     public RedisService redisService() {
         log.debug("redisService init");
