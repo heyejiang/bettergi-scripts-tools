@@ -9,6 +9,7 @@ import draggable from 'vuedraggable'
 
 // 配置列表 → 核心数据结构改为 array
 const configs = ref([])
+const currentConfig = ref([])
 const isLoading = ref(false);
 // 秘境数据（保持不变，建议单独抽到一个文件）
 const defaultDomains = domainsDefault
@@ -33,7 +34,7 @@ const fetchDomains = async () => {
   try {
     // const response = await service.get('/auto/plan/domain/json/all');
     const response = await getBaseJsonAll()
-    console.log('response', response)
+    // console.log('response', response)
     if (response && response.length > 0) {
       domains.value = response;
     } else {
@@ -101,7 +102,8 @@ onMounted(() => {
 const goToHome = () => {
   router.push('/'); // 假设主页路径是 '/'
 };
-
+const showResultDrawer = ref(false)
+const orderSortConfigs = ref(false)
 const uid = ref("")
 // 新增一条空白配置
 const addConfig = () => {
@@ -133,6 +135,9 @@ const addConfig = () => {
       DomainRoundNum: 1
     }
   })
+
+  changSortConfigs()
+
 }
 const removeConfigAll = () => {
   configs.value = []
@@ -159,15 +164,20 @@ const domainMap = computed(() => {
   return map
 })
 const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-const showDays = (config, type) => {
-  if (type === 'clear') {
-    config.days = []
-  } else if (type === 'showDaysSelector') {
-    config.showDaysSelector = true
-  } else if (type === 'hideDaysSelector') {
-    config.showDaysSelector = false
+// const showDays = (config, type) => {
+//   if (type === 'clear') {
+//     config.days = []
+//   } else if (type === 'showDaysSelector') {
+//     config.showDaysSelector = true
+//   } else if (type === 'hideDaysSelector') {
+//     config.showDaysSelector = false
+//   }
+//   changShowDaysButton(config);
+// }
+const changSortConfigs = () => {
+  if (orderSortConfigs.value) {
+    configs.value.sort((a, b) => b.order - a.order)
   }
-  changShowDaysButton(config);
 }
 
 function changShowDaysButton(config) {
@@ -220,6 +230,11 @@ watchEffect(
 
         changShowDaysButton(config);
       })
+
+      if (orderSortConfigs.value) {
+        newConfigs.sort((a, b) => b.order - a.order)
+      }
+
     },
     {deep: true}
 )
@@ -373,6 +388,32 @@ const updatePhysicalOrder = (config) => {
 const copyToClipboard = (text) => {
   CopyToClipboard(text)
 };
+
+const handleDaysConfirm = (config) => {
+  changShowDaysButton(config)
+  config.showDaysDialog = false
+}
+
+const clearDays = (config) => {
+  config.days = []
+  changShowDaysButton(config)
+  // 可选择是否关闭弹窗：config.showDaysDialog = false
+}
+const handleCurrentConfig = (config, type) => {
+  if (type === "show-day") {
+    config.showDaysDialog = true
+  } else if (type === "hide-day") {
+    config.showDaysDialog = false
+  } else if (type === "show-physical") {
+    config.showPhysicalDialog = true
+  } else if (type === "hide-physical") {
+    config.showPhysicalDialog = false
+  }
+  updateCurrentConfig(config)
+}
+const updateCurrentConfig = (config) => {
+  currentConfig.value = config
+}
 </script>
 
 <template>
@@ -384,6 +425,13 @@ const copyToClipboard = (text) => {
           <input type="text" v-model="uid" placeholder="设置 UID" class="uid-input"/>
           <!-- 添加配置按钮 -->
           <button @click="addConfig" class="btn btn-add">➕ 添加一条配置</button>
+          <div class="sort-control-card">
+            <span class="sort-label">执行排序</span>
+            <el-switch
+                v-model="orderSortConfigs"
+                @change="changSortConfigs"
+            />
+          </div>
           <button @click="submitConfigToBackend" class="btn btn-submit">同步到云端</button>
           <button @click="findDomains" class="btn btn-submit">加载云端配置</button>
           <button @click="removeConfigToBackend" class="btn danger">🗑️ 移除云端配置</button>
@@ -391,11 +439,131 @@ const copyToClipboard = (text) => {
 
         </div>
       </div>
+
+      <div class="external-pop-up-frame">
+        <!-- 弹窗 -->
+        <el-dialog
+            v-model="currentConfig.showDaysDialog"
+            title="选择执行日期"
+            width="480px"
+            :close-on-click-modal="false"
+            append-to-body
+        >
+
+          <div class="dialog-content">
+            <div class="checkbox-group">
+              <label v-for="(dayName, idx) in weekDays" :key="idx" class="checkbox-label">
+                <el-checkbox :label="idx" v-model="currentConfig.days">
+                  {{ dayName }}
+                </el-checkbox>
+              </label>
+            </div>
+
+            <div class="dialog-actions">
+              <el-button @click="currentConfig.showDaysDialog = false">取消</el-button>
+              <el-button type="primary" @click="handleDaysConfirm(currentConfig)">确定</el-button>
+              <el-button type="danger" plain size="small" @click="clearDays(currentConfig)">清空</el-button>
+            </div>
+          </div>
+        </el-dialog>
+        <el-dialog
+            v-model="currentConfig.showPhysicalDialog"
+            title="调整树脂使用顺序与启用状态"
+            width="520px"
+            direction="rtl"
+            :close-on-click-modal="false"
+        >
+          <div class="dialog-content">
+            <div class="selector-title">拖拽调整顺序</div>
+            <draggable
+                v-model="currentConfig.autoFight.physical"
+                item-key="name"
+                handle=".draggable-item"
+                @end="updatePhysicalOrder(currentConfig)"
+            >
+              <template #item="{ element }">
+                <div class="draggable-item">
+                  <span class="drag-handle">☰</span>
+                  <span class="physical-name">{{ element.name }}</span>
+                  <el-switch
+                      v-model="element.open"
+                      @change="updatePhysicalOrder(currentConfig)"
+                  />
+                </div>
+              </template>
+            </draggable>
+
+            <div class="dialog-actions" style="margin-top: 24px; text-align: right;">
+              <el-button @click="currentConfig.showPhysicalDialog = false">关闭</el-button>
+            </div>
+          </div>
+        </el-dialog>
+        <!-- 主内容区保持原样，只在最外层加一个抽屉 -->
+        <el-drawer
+            v-model="showResultDrawer"
+            direction="rtl"
+            size="45%"
+            :with-header="true"
+            :close-on-press-escape="true"
+            :modal="true"
+            custom-class="result-drawer"
+        >
+          <template #title>
+            <span style="font-weight: bold; color: #409eff;">配置结果预览</span>
+          </template>
+
+          <div class="drawer-content">
+            <!-- Json 配置卡片 -->
+            <div class="result-card">
+              <div class="card-header">
+                <label class="result-key">Json配置</label>
+                <el-tooltip content="复制到剪贴板" placement="top">
+                  <el-button
+                      type="primary"
+                      size="small"
+                      icon="DocumentCopy"
+                      @click="copyToClipboard(getFinalConfigsMapShow())"
+                  >
+                    复制
+                  </el-button>
+                </el-tooltip>
+              </div>
+              <pre class="result code-block">{{ getFinalConfigsMapShow() || '暂无返回数据' }}</pre>
+            </div>
+
+            <!-- 语法 key 卡片 -->
+            <div class="result-card" style="margin-top: 24px;">
+              <div class="card-header">
+                <label class="result-key">语法key</label>
+                <el-tooltip content="复制到剪贴板" placement="top">
+                  <el-button
+                      type="success"
+                      size="small"
+                      icon="DocumentCopy"
+                      @click="copyToClipboard(getFinalConfigsToKey())"
+                  >
+                    复制
+                  </el-button>
+                </el-tooltip>
+              </div>
+              <pre class="result code-block">{{ getFinalConfigsToKey() || '暂无返回数据' }}</pre>
+            </div>
+          </div>
+
+          <!-- 可选：底部操作 -->
+          <template #footer>
+            <div style="text-align: right;">
+              <el-button @click="showResultDrawer = false">关闭</el-button>
+            </div>
+          </template>
+        </el-drawer>
+      </div>
+
       <div class="content-area">
         <div class="config-list">
           <div v-for="(config,index) in configs" :key="config.order" class="config-item">
             <h3>#{{ index }} 配置</h3>
-                      <hr/>
+            <hr/>
 
             <div class="form-group">
               <label>执行顺序：</label>
@@ -405,64 +573,35 @@ const copyToClipboard = (text) => {
             </div>
 
             <div class="form-group">
-
               <label>执行日：</label>
-
               <div
                   class="days-display"
-                  @click="config.showDaysSelector = !config.showDaysSelector"
+                  @click="handleCurrentConfig(config,'show-day')"
                   :class="{ 'has-selection': config.days?.length > 0 }"
               >
-                <span v-if="config.days?.length === 0">
-                  每天执行（点击指定执行日期）
-                </span>
+              <span v-if="config.days?.length === 0">
+                每天执行（点击指定执行日期）
+              </span>
                 <span v-else>
-                  {{ config.dayName || '已选择 ' + config.days.length + ' 天' }}
-                  <i class="el-icon-arrow-down" :class="{ 'rotate': config.showDaysSelector }"></i>
-                </span>
-              </div>
-
-              <!-- 點擊後展開的部分 -->
-              <div v-if="config.showDaysSelector" class="days-selector">
-                <div class="checkbox-group">
-                  <label v-for="(dayName, idx) in weekDays" :key="idx" class="checkbox-label">
-                    <el-checkbox
-                        :label="idx"
-                        v-model="config.days"
-                    >{{ dayName }}
-                    </el-checkbox>
-                  </label>
-                </div>
-                <div class="actions">
-                  <el-button size="small" @click="showDays(config,'clear')">清空</el-button>
-                  <el-button size="small" type="primary" @click="showDays(config,'hideDaysSelector')">确定</el-button>
-                </div>
-              </div>
-
-              <div class="form-group" v-if="config.selectedType&&!excludeDomainTypes.includes(config.selectedType)">
-                <label>材料忽略限时开放：</label>
-                <el-button
-                    size="small"
-                    :disabled="!config.showDaysButton"
-                    @click="specifyDate(config)"
-                >
-                  {{ config.showDaysButton ? '启用' : '已启用' }}  <!--加*注意说明-->
-                </el-button>
-                <span style="color: red;">默认包含周日</span>
+                {{ config.dayName || '已选择 ' + config.days.length + ' 天' }}
+              </span>
               </div>
             </div>
-
-
+            <div class="form-group" v-if="config.selectedType&&!excludeDomainTypes.includes(config.selectedType)">
+              <label>材料忽略限时开放：</label>
+              <el-button
+                  size="small"
+                  :disabled="!config.showDaysButton"
+                  @click="specifyDate(config)"
+              >
+                {{ config.showDaysButton ? '启用' : '已启用' }}
+              </el-button>
+              <span style="color: red;">默认包含周日</span>
+            </div>
             <!-- 秘境选择 -->
             <!-- 新增 type 选择器 -->
             <div class="form-group">
               <label>秘境类型：</label>
-              <!--              <select v-model="config.selectedType">
-                            <option value="">请选择类型</option>
-                            <option value="天赋">天赋</option>
-                            <option value="武器">武器</option>
-                            <option value="圣遗物">圣遗物</option>
-                          </select>-->
               <select v-model="config.selectedType">
                 <option
                     v-for="type in domainTypes"
@@ -526,59 +665,22 @@ const copyToClipboard = (text) => {
 
             <!--          <hr/>-->
 
-            <!-- 树脂使用配置 -->
+
             <div class="form-group">
               <label>树脂使用顺序：</label>
-
-              <!-- 点击展开 -->
+              <!-- 原 physical-display 改成 -->
               <div
                   class="physical-display"
-                  @click="config.showPhysicalSelector = !config.showPhysicalSelector"
+                  @click="handleCurrentConfig(config,'show-physical')"
               >
-    <span>
-      {{
-        config.autoFight.physical
-            .filter(p => p.open)
-            .map(p => p.name)
-            .join(' → ') || '未选择'
-      }}
-    </span>
-                <i
-                    class="el-icon-arrow-down"
-                    :class="{ rotate: config.showPhysicalSelector }"
-                />
-              </div>
-
-              <!-- 展开内容 -->
-              <div v-if="config.showPhysicalSelector" class="physical-selector">
-                <div class="selector-title">拖拽调整顺序 & 启用状态</div>
-
-                <draggable
-                    v-model="config.autoFight.physical"
-                    item-key="name"
-                    handle=".drag-handle"
-                    @end="updatePhysicalOrder(config)"
-                >
-                  <template #item="{ element }">
-                    <div class="draggable-item">
-                      <span class="drag-handle">☰</span>
-
-                      <span class="physical-name">{{ element.name }}</span>
-
-                      <el-switch
-                          v-model="element.open"
-                          @change="updatePhysicalOrder(config)"
-                      />
-                    </div>
-                  </template>
-                </draggable>
-
-                <div class="actions">
-                  <el-button size="small" type="primary"
-                             @click="config.showPhysicalSelector = false">
-                    确定
-                  </el-button>
-                </div>
+              <span>
+                {{
+                  config.autoFight.physical
+                      .filter(p => p.open)
+                      .map(p => p.name)
+                      .join(' → ') || '未选择'
+                }}
+              </span>
               </div>
             </div>
 
@@ -588,16 +690,21 @@ const copyToClipboard = (text) => {
 
           </div>
         </div>
-        <div class="result-all">
-          <label class="result-key">Json配置:</label>
-          <pre class="result">{{ getFinalConfigsMapShow() || '暂无返回数据' }}</pre>
-          <button @click="copyToClipboard(getFinalConfigsMapShow())" class="copy-btn">📋 复制</button>
+        <!-- 右侧固定触发按钮（悬浮在页面右中部） -->
+        <div class="fixed-trigger" @click="showResultDrawer = true" title="查看/复制配置结果">
+          <i class="el-icon-document"></i>
+          <span>查看/复制配置结果</span>
         </div>
-        <div class="result-all">
-          <label class="result-key">语法key:</label>
-          <pre class="result">{{ getFinalConfigsToKey() || '暂无返回数据' }}</pre>
-          <button @click="copyToClipboard(getFinalConfigsToKey())" class="copy-btn">📋 复制</button>
-        </div>
+        <!--        <div class="result-all">
+                  <label class="result-key">Json配置:</label>
+                  <pre class="result">{{ getFinalConfigsMapShow() || '暂无返回数据' }}</pre>
+                  <button @click="copyToClipboard(getFinalConfigsMapShow())" class="copy-btn">📋 复制</button>
+                </div>
+                <div class="result-all">
+                  <label class="result-key">语法key:</label>
+                  <pre class="result">{{ getFinalConfigsToKey() || '暂无返回数据' }}</pre>
+                  <button @click="copyToClipboard(getFinalConfigsToKey())" class="copy-btn">📋 复制</button>
+                </div>-->
       </div>
     </div>
     <!-- 在 template 最后添加 -->
@@ -820,14 +927,6 @@ h2 {
   font-weight: 500;
 }
 
-.days-selector {
-  margin-top: 8px;
-  padding: 12px;
-  border: 1px solid #e4e7ed;
-  border-radius: 6px;
-  background: #f8f9fa;
-}
-
 .checkbox-group {
   display: flex;
   flex-wrap: wrap;
@@ -839,14 +938,6 @@ h2 {
   min-width: 80px;
 }
 
-.actions {
-  text-align: right;
-  margin-top: 8px;
-}
-
-.rotate {
-  transform: rotate(180deg);
-}
 
 .form-group input {
   align-items: center;
@@ -914,7 +1005,45 @@ h2 {
 .copy-btn:hover {
   background-color: #85ce61;
 }
+.sort-control-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
 
+  background-color: #85ce61; /* 白色背景 */
+  color: #000000; /* 黑色文字 */
+  padding: 10px 20px; /* 内边距 */
+  border-radius: 8px; /* 圆角 */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); /* 添加阴影，模拟卡片效果 */
+  border: none; /* 去除边框 */
+  font-weight: bold; /* 加粗文字 */
+  transition: all 0.3s ease; /* 平滑过渡效果 */
+}
+
+.sort-control-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35),
+  inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border-color: rgba(96, 165, 250, 0.4);
+}
+
+.sort-label {
+  color: #000000;
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+/* 讓 switch 看起來更精緻（可選） */
+:deep(.el-switch__core) {
+  border-color: rgba(96, 165, 250, 0.5) !important;
+}
+
+:deep(.el-switch.is-checked .el-switch__core) {
+  border-color: #60a5fa !important;
+  background-color: #3b82f6 !important;
+}
 .btn.btn-add {
   background-color: #85ce61; /* 白色背景 */
   color: #000000; /* 黑色文字 */
@@ -982,38 +1111,6 @@ h2 {
   cursor: not-allowed;
 }
 
-.physical-display {
-  padding: 8px 12px;
-  border: 1px solid #dcdfe6;
-  border-radius: 6px;
-  background: #fff;
-  cursor: pointer;
-  min-height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  transition: all 0.2s;
-  margin-bottom: 8px;
-}
-
-.physical-display:hover {
-  border-color: #409eff;
-}
-
-.physical-selector {
-  margin-top: 8px;
-  padding: 12px;
-  border: 1px solid #e4e7ed;
-  border-radius: 6px;
-  background: #f8f9fa;
-}
-
-.selector-title {
-  font-size: 0.9rem;
-  color: #606266;
-  margin-bottom: 10px;
-  font-weight: 500;
-}
 
 .drag-handle {
   cursor: move;
@@ -1037,5 +1134,177 @@ h2 {
   text-align: right;
   margin-top: 12px;
 }
+
+.physical-display {
+  padding: 8px 12px;
+  border: 1px solid #dcdfe6;
+  border-radius: 6px;
+  background: #f5f7fa;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.2s;
+  min-height: 36px;
+}
+
+.physical-display:hover {
+  border-color: #409eff;
+  background: #ecf5ff;
+}
+
+.draggable-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid #ebeef5;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.drag-handle {
+  cursor: move;
+  font-size: 1.3rem;
+  color: #909399;
+}
+
+.physical-name {
+  font-weight: 500;
+}
+
+/* 右侧固定触发按钮 */
+.fixed-trigger {
+  position: fixed;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 999;
+  width: 4%;
+  height: 40%;
+  background: rgba(64, 158, 255, 0.9);
+  color: white;
+  border-radius: 12px 0 0 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: -2px 0 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.fixed-trigger:hover {
+  right: 18px;
+  background: rgba(64, 158, 255, 1);
+  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.2);
+}
+
+.fixed-trigger i {
+  font-size: 1.8rem;
+}
+
+.fixed-trigger span {
+  font-size: 0.9rem;
+  writing-mode: vertical-rl;
+  letter-spacing: 2px;
+}
+
+/* 抽屉自定义样式 */
+.result-drawer {
+  --el-drawer-bg-color: rgba(206, 33, 33, 0.96);
+  --el-drawer-border-color: #1b3e8f;
+  background: #fadbd8;
+  backdrop-filter: blur(6px);
+}
+
+.drawer-content {
+  padding: 0 16px 24px;
+  height: 100%;
+  overflow-y: auto;
+  backdrop-filter: blur(6px);
+}
+
+.result-card {
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(10px); /* 毛玻璃效果 */
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #29cbc5, #cf12e3); /* 添加渐变背景 */
+  border-bottom: 1px solid #e9ecef;
+}
+
+.result-key {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #303133;
+}
+
+.code-block {
+  margin: 0;
+  padding: 16px;
+  background: linear-gradient(135deg, #ddb568, #ffffff); /* 添加渐变背景 */
+  color: rgb(230, 0, 103); /* 修改为你想要的颜色 */
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 0.94rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 45vh;
+  overflow-y: auto;
+}
+
+.external-pop-up-frame {
+  /* 讓彈窗有「浮在背景上」的氛圍 */
+  position: relative;
+  z-index: 2000; /* 確保蓋過其他內容 */
+}
+
+/* 對所有從這裡彈出的 el-dialog / el-drawer 生效 */
+.external-pop-up-frame .el-dialog,
+.external-pop-up-frame .el-drawer {
+  /*  --el-dialog-bg-color         : rgba(206, 210, 225, 0.88) !important;*/
+  /*background                   : linear-gradient(135deg, #5b818c, #38e0c2);*/
+  /*  --el-overlay-bg-color        : rgba(224, 208, 208, 0.65) !important;*/
+  backdrop-filter: blur(12px) saturate(1.6);
+  border: 1px solid rgba(100, 160, 255, 0.25);
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(80, 76, 76, 0.5);
+  overflow: hidden;
+}
+
+/* 標題區域加強 */
+.external-pop-up-frame .el-dialog__header,
+.external-pop-up-frame .el-drawer__header {
+  color: #e4e8ea;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 16px 24px;
+}
+
+/* 內容區域 */
+.external-pop-up-frame .el-dialog__body,
+.external-pop-up-frame .el-drawer__body {
+  background: transparent;
+  /*  color                        : #e2e8f0;*/
+  padding: 20px 24px;
+}
+
+/* 按鈕區域（footer） */
+.external-pop-up-frame .el-dialog__footer {
+  background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 16px 24px;
+}
+
 
 </style>
