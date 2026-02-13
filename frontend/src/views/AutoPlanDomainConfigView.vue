@@ -5,6 +5,8 @@ import {getBaseJsonAll, getUidJson, postUidJson, removeUidList} from "@api/domai
 import {CopyToClipboard} from "@utils/local.js";
 import {domainsDefault, domainTypesDefault, excludeDomainTypesDefault, selectedAsDaysMap} from "@utils/defaultdata.js";
 import router from "@router/router.js";
+import draggable from 'vuedraggable'
+
 // 配置列表 → 核心数据结构改为 array
 const configs = ref([])
 const isLoading = ref(false);
@@ -113,10 +115,17 @@ const addConfig = () => {
     days: [],
     dayName: undefined,
     showDaysSelector: false,   // ← 新增
+    showPhysicalSelector: false,   // ← 新增
     showDaysButton: true,   // ← 新增
     // daysName: [],
     selectedType: "", // 新增字段
     autoFight: {
+      physical: [
+        {order: 0, name: "原粹树脂", open: true},
+        {order: 1, name: "浓缩树脂", open: false},
+        {order: 2, name: "须臾树脂", open: false},
+        {order: 3, name: "脆弱树脂", open: false}
+      ],
       domainName: undefined,
       partyName: undefined,
       sundaySelectedValue: undefined,
@@ -164,7 +173,7 @@ const showDays = (config, type) => {
 function changShowDaysButton(config) {
   if (config.days && config.days.length > 0) {
     config.dayName = "已选中:" + config.days.map(dayIndex => weekDays[dayIndex]).join(', ')
-  }else if (config.days && config.days.length <= 0){
+  } else if (config.days && config.days.length <= 0) {
     config.dayName = undefined
   }
   if ((!excludeDomainTypes.value.includes(config.selectedType)) && config.autoFight.sundaySelectedValue) {
@@ -235,6 +244,7 @@ const getFinalConfigs = () => {
         index++
       }
     }
+    // c.autoFight.physical.sort((a, b) => a.order - b.order)
     changShowDaysButton(c)
     let json = {
       order: c.order,
@@ -242,6 +252,7 @@ const getFinalConfigs = () => {
       days: c.days,
       dayName: c.dayName,
       // daysName: c.daysName,
+      physical: c.physical,
       selectedType: c.selectedType, // 新增字段
       autoFight: autoFight
     };
@@ -271,7 +282,9 @@ const getFinalConfigsToKey = () => {
   let key = ""
   //"队伍名称|秘境名称/刷取物品名称|刷几轮|限时/周日|执行顺序,..."
   getFinalConfigs().forEach(item => {
-    const autoFight = item.autoFight;
+    let autoFight = item.autoFight;
+    let physical = [...autoFight.physical];
+    physical.sort((a, b) => a.order - b.order)
     key += (autoFight.partyName || "")
     key += "|"
     key += (autoFight.domainName)
@@ -282,6 +295,8 @@ const getFinalConfigsToKey = () => {
     key += "|"
     // key += (item.day || "")
     key += (item.days.join('/') || "") // 将数组转换为字符串
+    key += "|"
+    key += (physical.filter(p => p.open).map(p => p.name).join('/') || "")
     key += "|"
     key += (item.order || 1) + ","
   })
@@ -336,6 +351,25 @@ const specifyDate = async (item) => {
     changShowDaysButton(item);
   }
 }
+const updatePhysicalOrder = (config) => {
+  config.autoFight.physical.forEach((item, index) => {
+    item.order = index;
+  });
+  // 至少保留一个启用
+  const enabledCount = config.autoFight.physical
+      .filter(item => item.open).length
+
+  if (enabledCount === 0) {
+    ElMessage({
+      type: 'error',
+      message: '至少保留一个启用！'
+    })
+    const fallback = config.autoFight.physical.find(
+        item => item.name === '原粹树脂'
+    )
+    if (fallback) fallback.open = true
+  }
+};
 const copyToClipboard = (text) => {
   CopyToClipboard(text)
 };
@@ -361,12 +395,13 @@ const copyToClipboard = (text) => {
         <div class="config-list">
           <div v-for="(config,index) in configs" :key="config.order" class="config-item">
             <h3>#{{ index }} 配置</h3>
-            <!-- 删除按钮 -->
-            <button @click="removeConfig(index)" class="btn danger">🗑️ 删除</button>
+                      <hr/>
+
             <div class="form-group">
               <label>执行顺序：</label>
               <input class="limited-input" v-model.number="config.order" type="number" min="1" max="99999999"
                      placeholder="建议 1~10"/>
+              <span style="color: red;">数值高的优先执行</span>
             </div>
 
             <div class="form-group">
@@ -414,79 +449,143 @@ const copyToClipboard = (text) => {
                   {{ config.showDaysButton ? '启用' : '已启用' }}  <!--加*注意说明-->
                 </el-button>
                 <span style="color: red;">默认包含周日</span>
+              </div>
             </div>
-          </div>
-          <!-- 秘境选择 -->
-          <!-- 新增 type 选择器 -->
-          <div class="form-group">
-            <label>秘境类型：</label>
-            <!--              <select v-model="config.selectedType">
-                          <option value="">请选择类型</option>
-                          <option value="天赋">天赋</option>
-                          <option value="武器">武器</option>
-                          <option value="圣遗物">圣遗物</option>
-                        </select>-->
-            <select v-model="config.selectedType">
-              <option
-                  v-for="type in domainTypes"
-                  :key="type.value"
-                  :value="type.value"
-              >
-                {{ type.label }}
-              </option>
-            </select>
-          </div>
-          <!-- 秘境选择（根据 selectedType 过滤） -->
-          <div class="form-group">
-            <label>秘境：</label>
-            <select v-model="config.autoFight.domainName">
-              <option value="">请选择秘境</option>
-              <option
-                  v-for="d in filteredDomainsType(config.selectedType)"
-                  :key="d.name"
-                  :value="d.name"
-              >
-                {{ d.name }}
-              </option>
-            </select>
-          </div>
-          <!-- 物品名称选择（根据 domainName 过滤） -->
-          <div v-if="domainMap.get(config.autoFight.domainName)?.hasOrder" class="form-group">
-            <label>周日/限时材料：</label>
-            <select
-                v-model="config.autoFight.sundaySelectedValue">
-              <option
-                  v-for="(item,index) in domainMap.get(config.autoFight.domainName)?.list || []"
-                  :key="item"
-                  :value="index + 1"
-              >
-                {{ item }}
-              </option>
-            </select>
-          </div>
-          <div
-              v-if="(!domainMap.get(config.autoFight.domainName)?.hasOrder)&&(domainMap.get(config.autoFight.domainName)?.list?.length>0)"
-              class="form-group">
-            <label>秘境圣遗物：</label>
-            <ul>
-              <li v-for="item in domainMap.get(config.autoFight.domainName)?.list" :key="item">
-                {{ item }}
-              </li>
-            </ul>
-          </div>
-          <div class="form-group">
-            <label>队伍名称（可选）：</label>
-            <input class="limited-input" v-model="config.autoFight.partyName" placeholder="队伍1 / 主C+副C+辅助"/>
 
-          </div>
-          <div class="form-group">
-            <label>副本轮数：</label>
-            <input class="limited-input" v-model.number="config.autoFight.DomainRoundNum" type="number" min="1"
-                   max="99"
-                   placeholder="建议 1~10"/>
-          </div>
+
+            <!-- 秘境选择 -->
+            <!-- 新增 type 选择器 -->
+            <div class="form-group">
+              <label>秘境类型：</label>
+              <!--              <select v-model="config.selectedType">
+                            <option value="">请选择类型</option>
+                            <option value="天赋">天赋</option>
+                            <option value="武器">武器</option>
+                            <option value="圣遗物">圣遗物</option>
+                          </select>-->
+              <select v-model="config.selectedType">
+                <option
+                    v-for="type in domainTypes"
+                    :key="type.value"
+                    :value="type.value"
+                >
+                  {{ type.label }}
+                </option>
+              </select>
+            </div>
+            <!-- 秘境选择（根据 selectedType 过滤） -->
+            <div class="form-group">
+              <label>秘境：</label>
+              <select v-model="config.autoFight.domainName">
+                <option value="">请选择秘境</option>
+                <option
+                    v-for="d in filteredDomainsType(config.selectedType)"
+                    :key="d.name"
+                    :value="d.name"
+                >
+                  {{ d.name }}
+                </option>
+              </select>
+            </div>
+            <!-- 物品名称选择（根据 domainName 过滤） -->
+            <div v-if="domainMap.get(config.autoFight.domainName)?.hasOrder" class="form-group">
+              <label>周日/限时材料：</label>
+              <select
+                  v-model="config.autoFight.sundaySelectedValue">
+                <option
+                    v-for="(item,index) in domainMap.get(config.autoFight.domainName)?.list || []"
+                    :key="item"
+                    :value="index + 1"
+                >
+                  {{ item }}
+                </option>
+              </select>
+            </div>
+            <div
+                v-if="(!domainMap.get(config.autoFight.domainName)?.hasOrder)&&(domainMap.get(config.autoFight.domainName)?.list?.length>0)"
+                class="form-group">
+              <label>秘境圣遗物：</label>
+              <ul>
+                <li v-for="item in domainMap.get(config.autoFight.domainName)?.list" :key="item">
+                  {{ item }}
+                </li>
+              </ul>
+            </div>
+
+
+            <div class="form-group">
+              <label>队伍名称（可选）：</label>
+              <input class="limited-input" v-model="config.autoFight.partyName" placeholder="队伍1 / 主C+副C+辅助"/>
+            </div>
+            <div class="form-group">
+              <label>副本轮数：</label>
+              <input class="limited-input" v-model.number="config.autoFight.DomainRoundNum" type="number" min="1"
+                     max="99"
+                     placeholder="建议 1~10"/>
+            </div>
 
             <!--          <hr/>-->
+
+            <!-- 树脂使用配置 -->
+            <div class="form-group">
+              <label>树脂使用顺序：</label>
+
+              <!-- 点击展开 -->
+              <div
+                  class="physical-display"
+                  @click="config.showPhysicalSelector = !config.showPhysicalSelector"
+              >
+    <span>
+      {{
+        config.autoFight.physical
+            .filter(p => p.open)
+            .map(p => p.name)
+            .join(' → ') || '未选择'
+      }}
+    </span>
+                <i
+                    class="el-icon-arrow-down"
+                    :class="{ rotate: config.showPhysicalSelector }"
+                />
+              </div>
+
+              <!-- 展开内容 -->
+              <div v-if="config.showPhysicalSelector" class="physical-selector">
+                <div class="selector-title">拖拽调整顺序 & 启用状态</div>
+
+                <draggable
+                    v-model="config.autoFight.physical"
+                    item-key="name"
+                    handle=".drag-handle"
+                    @end="updatePhysicalOrder(config)"
+                >
+                  <template #item="{ element }">
+                    <div class="draggable-item">
+                      <span class="drag-handle">☰</span>
+
+                      <span class="physical-name">{{ element.name }}</span>
+
+                      <el-switch
+                          v-model="element.open"
+                          @change="updatePhysicalOrder(config)"
+                      />
+                    </div>
+                  </template>
+                </draggable>
+
+                <div class="actions">
+                  <el-button size="small" type="primary"
+                             @click="config.showPhysicalSelector = false">
+                    确定
+                  </el-button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 删除按钮 -->
+
+            <button @click="removeConfig(index)" class="btn danger">🗑️ 删除</button>
+
           </div>
         </div>
         <div class="result-all">
@@ -544,6 +643,7 @@ const copyToClipboard = (text) => {
   top: 0;
   left: 0;
   width: 100%;
+  height: 15%;
   /* background: rgba(255, 255, 255, 0.9); !* 半透明白色背景 *!*/
   backdrop-filter: blur(10px); /* 毛玻璃效果 */
   z-index: 1000; /* 确保在最上层 */
@@ -553,7 +653,8 @@ const copyToClipboard = (text) => {
 
 /* 内容区域补偿高度 */
 .content-area {
-  margin-top: 10%; /* 根据 .fixed-container 的实际高度调整 */
+  margin-top: 15%; /* 根据 .fixed-container 的实际高度调整 */
+  width: 100%;
 }
 
 /* 标题样式（保持原有样式） */
@@ -643,7 +744,7 @@ h2 {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   /* 禁止超出框限制*/
-  overflow: hidden; /* 禁止内容超出容器 */
+  overflow: visible; /* 禁止内容超出容器 */
 }
 
 .config-item:hover {
@@ -879,6 +980,62 @@ h2 {
   background-color: #e0e0e0;
   color: #999;
   cursor: not-allowed;
+}
+
+.physical-display {
+  padding: 8px 12px;
+  border: 1px solid #dcdfe6;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.2s;
+  margin-bottom: 8px;
+}
+
+.physical-display:hover {
+  border-color: #409eff;
+}
+
+.physical-selector {
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px solid #e4e7ed;
+  border-radius: 6px;
+  background: #f8f9fa;
+}
+
+.selector-title {
+  font-size: 0.9rem;
+  color: #606266;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.drag-handle {
+  cursor: move;
+  margin-right: 12px;
+  font-size: 1.2rem;
+  color: #999;
+}
+
+.draggable-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.actions {
+  text-align: right;
+  margin-top: 12px;
 }
 
 </style>
