@@ -1,4 +1,5 @@
 import service from "@utils/request.js";
+import {ElMessage, ElMessageBox} from "element-plus";
 
 /**
  * 异步发送UID和JSON数据到服务器
@@ -14,6 +15,9 @@ async function postUidJson(uid, json) {
     };
     // 发送POST请求到指定端点
     const response = await service.post("/auto/plan/domain/json", payload);
+    if (response.code === 200){
+        ElMessage.success("保存成功");
+    }
     // 返回响应数据
     return response.data;
 }
@@ -35,6 +39,9 @@ async function getUidJson(uid){
  */
 async function removeUidList(uidStr){
     const response = await service.delete('/auto/plan/domain/json',{params: {uidStr: uidStr}});
+    if (response.code === 200){
+        ElMessage.success("删除成功");
+    }
     return response.data;
 }
 

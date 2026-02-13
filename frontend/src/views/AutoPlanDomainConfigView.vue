@@ -39,18 +39,12 @@ const fetchDomains = async () => {
       domains.value = response;
     } else {
       domains.value = defaultDomains;
-      ElMessage({
-        type: 'warning',
-        message: '无数据存储，使用默认秘境数据。',
-      });
+      ElMessage.warning('无数据存储，使用默认秘境数据。');
     }
   } catch (error) {
     console.error('请求失败:', error);
     domains.value = defaultDomains;
-    ElMessage({
-      type: 'warning',
-      message: '使用默认秘境数据。',
-    });
+    ElMessage.warning('使用默认秘境数据。');
   } finally {
     isLoading.value = false;
   }
@@ -86,10 +80,7 @@ const findDomains = async () => {
     configs.value = response;
   } catch (error) {
     console.error('请求失败:', error);
-    ElMessage({
-      type: 'error',
-      message: error.message,
-    });
+    ElMessage.error( error.message);
   } finally {
   }
 };
