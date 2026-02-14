@@ -526,24 +526,56 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
 
-      - name: 5. 下载 Launch4j（使用 direct link）
+      - name: 5. 下载 Launch4j（使用 direct link + 完整诊断）
         run: |
           $url = "https://downloads.sourceforge.net/project/launch4j/launch4j-3/3.50/launch4j-3.50-win32.zip"
-          
-          curl.exe -L -o launch4j.zip "$url" --retry 5 --retry-delay 10 --connect-timeout 30
-          
-          if (-not (Test-Path launch4j.zip)) {
-            Write-Error "curl 下载失败"
+          $zipFile = "launch4j.zip"
+          $expectedSizeMB = 10  # 大约 10MB，实际可能略有浮动
+
+          Write-Output "开始从 direct link 下载 Launch4j ZIP..."
+          Write-Output "URL: $url"
+
+          # 使用 curl 下载，带重试、超时、User-Agent
+          curl.exe -L -o $zipFile "$url" `
+            --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" `
+            --retry 5 --retry-delay 10 --connect-timeout 60 --max-time 300 `
+            --silent --show-error
+
+          if (-not (Test-Path $zipFile)) {
+            Write-Error "curl 下载失败：文件 launch4j.zip 不存在"
             exit 1
           }
-          
-          Write-Output "下载完成，大小："
-          Get-Item launch4j.zip | Select Length
-          
-          Expand-Archive launch4j.zip -DestinationPath launch4j -Force
-          Remove-Item launch4j.zip
-          
-          dir launch4j
+
+          $fileSizeMB = [math]::Round((Get-Item $zipFile).Length / 1MB, 2)
+          Write-Output "下载完成，大小：$fileSizeMB MB（预期约 $expectedSizeMB MB）"
+
+          if ($fileSizeMB -lt 5) {
+            Write-Error "文件太小（小于 5MB），很可能下载到了网页而非 ZIP 文件"
+            Write-Output "文件前 10 行内容（用于诊断）："
+            Get-Content $zipFile -First 10 -ErrorAction SilentlyContinue
+            exit 1
+          }
+
+          Write-Output "开始解压 ZIP 文件..."
+          Expand-Archive -Path $zipFile -DestinationPath launch4j -Force -Verbose
+
+          Remove-Item $zipFile -Force -ErrorAction SilentlyContinue
+
+          Write-Output "解压完成，目录结构如下："
+          Get-ChildItem launch4j -Recurse | Select-Object FullName, Length | Format-Table -AutoSize
+
+          # 查找 launch4j.exe（兼容不同可能的子目录结构）
+          $exePath = Get-ChildItem launch4j -Recurse -Filter launch4j.exe -File | Select-Object -First 1 -ExpandProperty FullName
+
+          if (-not $exePath) {
+            Write-Error "在 launch4j 目录及其子目录中未找到 launch4j.exe！"
+            Write-Output "请检查上面打印的目录结构是否正确"
+            exit 1
+          }
+
+          Write-Output "找到 launch4j.exe：$exePath"
+          # 可选：设置环境变量，让后续步骤使用绝对路径调用
+          echo "LAUNCH4J_EXE=$exePath" >> $env:GITHUB_ENV
 
       - name: 6.下载 Windows JDK 用于捆绑 JRE
         run: |
