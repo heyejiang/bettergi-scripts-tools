@@ -552,29 +552,60 @@ jobs:
           echo "/tmp/launch4j/ 文件："
           ls -lh /tmp/launch4j/ || echo "没有文件"
 
-      - name: 6. 下载 Windows JRE 并捆绑
+      - name: 6. 下载 Windows JRE 并捆绑（2026 年兼容版）
         run: |
           API_URL="https://api.adoptium.net/v3/assets/latest/${{ env.JAVA_VERSION }}/hotspot?image_type=jdk&os=windows&arch=x64&vendor=adoptium"
-          DOWNLOAD_URL=$(curl -s "$API_URL" | jq -r '.[0].binary.package.link // empty')
+
+          echo "请求 API: $API_URL"
+
+          RESPONSE=$(curl -s --fail -L "$API_URL" || { echo "API 请求失败"; exit 1; })
+
+          # 打印响应预览（调试）
+          echo "API 响应前 15 行："
+          echo "$RESPONSE" | head -n 15
+
+          # 优先提取 x64 的 package.link（新格式）
+          DOWNLOAD_URL=$(echo "$RESPONSE" | jq -r '
+            if type == "array" then 
+              .[] | select(.binary.architecture == "x64") | .binary.package.link 
+            else 
+              .binary.package.link // empty 
+            end // .[0].binary.package.link // empty
+          ')
 
           if [ -z "$DOWNLOAD_URL" ]; then
-            echo "❌ 获取下载链接失败"
+            echo "❌ 无法提取下载链接"
+            echo "完整响应："
+            echo "$RESPONSE" | jq . || echo "$RESPONSE"
             exit 1
           fi
 
-          wget -O jdk.zip "$DOWNLOAD_URL"
-          unzip -q jdk.zip -d jdk_extract
+          echo "提取到下载链接：$DOWNLOAD_URL"
+
+          wget -O jdk.zip "$DOWNLOAD_URL" || { echo "下载失败"; exit 1; }
+
+          unzip -q jdk.zip -d jdk_extract || exit 1
+
           JDK_ROOT=$(find jdk_extract -mindepth 1 -maxdepth 1 -type d | head -1)
+          [ -z "$JDK_ROOT" ] && { echo "未找到 JDK 根目录"; ls -la jdk_extract; exit 1; }
 
           mkdir -p /tmp/extracted-jars/jre
+
           if [[ "${{ env.JAVA_VERSION }}" == "8" ]]; then
-            cp -r "$JDK_ROOT/jre/"* /tmp/extracted-jars/jre/
+            if [ -d "$JDK_ROOT/jre" ]; then
+              cp -r "$JDK_ROOT/jre/"* /tmp/extracted-jars/jre/
+            else
+              echo "JDK8 无 jre 子目录，使用整个 JDK 作为运行时"
+              cp -r "$JDK_ROOT/"* /tmp/extracted-jars/jre/
+            fi
           else
             cp -r "$JDK_ROOT/"* /tmp/extracted-jars/jre/
           fi
 
+          echo "捆绑 JRE 大小："
           du -sh /tmp/extracted-jars/jre
-          rm -rf jdk.zip jdk_extract
+
+          rm -rf jdk.zip jdk_extract      
 
       - name: 7. 为每个 JAR 生成 Windows EXE
         run: |
