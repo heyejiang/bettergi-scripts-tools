@@ -571,28 +571,56 @@ jobs:
 
       - name: 7. 为每个 JAR 生成 Windows EXE
         run: |
+          echo "当前工作目录：$(pwd)"
+          ls -la extracted-jars || echo "extracted-jars 目录不存在"
+
+          # 创建独立的 exe 输出目录
+          mkdir -p extracted-exes
+          echo "exe 输出目录：extracted-exes"
+          ls -la extracted-exes || true
+
           for jar in extracted-jars/*.jar; do
-            [ -f "$jar" ] || continue
+            [ -f "$jar" ] || { echo "没有找到任何 JAR 文件，跳过"; continue; }
 
             jar_name=$(basename "$jar" .jar)
-            exe_file="extracted-exe/${jar_name}.exe"
+            exe_file="extracted-exes/${jar_name}.exe"   # 统一放到 extracted-exes
 
+            echo "======================================"
+            echo "处理 JAR: $jar"
+            echo "输出 EXE: $exe_file"
+
+            # 提取 Main-Class
             main_class=$(unzip -p "$jar" META-INF/MANIFEST.MF | grep '^Main-Class:' | sed 's/^Main-Class: *//' | tr -d '\r')
-            [ -z "$main_class" ] && { echo "跳过无 Main-Class 的 $jar"; continue; }
+            if [ -z "$main_class" ]; then
+              echo "跳过无 Main-Class 的 $jar"
+              continue
+            fi
+            echo "Main-Class: $main_class"
 
             # 版本处理
             raw_tag="${TAG_NAME#v}"
             clean_ver=$(echo "$raw_tag" | sed 's/[^0-9.]//g' | sed 's/\.\.*/./g')
             IFS='.' read -r major minor patch build <<< "$clean_ver"
             file_ver="${major:-0}.${minor:-0}.${patch:-0}.${build:-0}"
+            echo "File Version: $file_ver"
 
+            # icon 路径（使用相对路径）
+            icon_path="${ICON_PATH}"
+            if [ ! -f "$icon_path" ]; then
+              echo "警告：图标文件 $icon_path 不存在，将不使用图标"
+              icon_path=""
+            else
+              echo "使用图标：$icon_path"
+            fi
+
+            # 生成 XML 配置（outfile 使用相对路径）
             config="/tmp/${jar_name}_config.xml"
             cat > "$config" << EOF
           <launch4jConfig>
             <dontWrapJar>false</dontWrapJar>
             <headerType>console</headerType>
             <jar>$(realpath "$jar")</jar>
-            <outfile>$(realpath "$exe_file")</outfile>
+            <outfile>$exe_file</outfile>
             <errTitle>${{ github.event.repository.name }} Error</errTitle>
             <classPath><mainClass>$main_class</mainClass></classPath>
             <jre>
@@ -616,17 +644,36 @@ jobs:
           </launch4jConfig>
           EOF
 
-            # 用 Wine 执行 launch4j.jar
-            java -Djava.awt.headless=true -jar /tmp/launch4j/launch4j.jar "$config" || exit 1
+            echo "生成的 XML 配置（预览）："
+            cat "$config"
 
-            [ -f "$exe_file" ] && echo "生成成功 $exe_file" || { echo "生成失败 $exe_file"; exit 1; }
+            # 执行 launch4j
+            java -Djava.awt.headless=true -jar /tmp/launch4j/launch4j.jar "$config" || { 
+              echo "Launch4j 执行失败"
+              cat /tmp/launch4j.log 2>/dev/null || echo "无 launch4j 日志"
+              exit 1
+            }
+
+            # 检查结果
+            if [ -f "$exe_file" ]; then
+              echo "生成成功: $exe_file"
+              ls -lh "$exe_file"
+            else
+              echo "生成失败: $exe_file 不存在"
+              ls -la extracted-exes || echo "extracted-exes 目录为空"
+              exit 1
+            fi
           done
+
+          # 步骤结束时预览所有 exe
+          echo "所有生成的 exe 文件："
+          ls -lh extracted-exes || echo "没有生成任何 exe"
 
       - name: 8. 打包独立运行包
         run: |
           mkdir -p standalone
-          cp extracted-exe/*.exe standalone/ 2>/dev/null
-          cp -r extracted-exe/jre standalone/ 2>/dev/null
+          cp extracted-exes/*.exe standalone/ 2>/dev/null
+          cp -r extracted-exes/jre standalone/ 2>/dev/null
 
           if [ -f src/main/resources/application-prod.yml ]; then
             cp src/main/resources/application-prod.yml standalone/
@@ -654,7 +701,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-exes
-          path: extracted-exes/*.exe
+          path: extracted-exess/*.exe
 
 
   build-and-push-docker:
