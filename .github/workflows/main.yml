@@ -507,31 +507,31 @@ jobs:
 
       - name: 5.下载 Launch4j（Windows 版本）
         run: |
-            $url = "https://sourceforge.net/projects/launch4j/files/launch4j-3/3.50/launch4j-3.50-win32.zip/download"
-            $outFile = "launch4j.zip"
-            $maxRetries = 5
-            $retryCount = 0
+          $url = "https://sourceforge.net/projects/launch4j/files/launch4j-3/3.50/launch4j-3.50-win32.zip/download"
+          $outFile = "launch4j.zip"
+          $maxRetries = 5
+          $retryCount = 0
             
-            while ($retryCount -lt $maxRetries) {
+          while ($retryCount -lt $maxRetries) {
             try {
-            Invoke-WebRequest -Uri $url -OutFile $outFile -UseBasicParsing -TimeoutSec 60
-            Write-Output "下载成功"
-            break
-          } catch {
-            $retryCount++
-            Write-Output "下载失败 (尝试 $retryCount/$maxRetries)，等待 10 秒后重试..."
-            Start-Sleep -Seconds 10
-          }
+              Invoke-WebRequest -Uri $url -OutFile $outFile -UseBasicParsing -TimeoutSec 60
+              Write-Output "下载成功"
+              break
+            } catch {
+              $retryCount++
+              Write-Output "下载失败 (尝试 $retryCount/$maxRetries)，等待 10 秒后重试..."
+              Start-Sleep -Seconds 10
+            }
           }
             
-            if (-not (Test-Path $outFile)) {
+          if (-not (Test-Path $outFile)) {
             Write-Error "下载 launch4j 失败，已重试 $maxRetries 次"
             exit 1
           }
             
-            Expand-Archive -Path $outFile -DestinationPath launch4j -Force
-            Remove-Item $outFile -Force
-            dir launch4j
+          Expand-Archive -Path $outFile -DestinationPath launch4j -Force
+          Remove-Item $outFile -Force
+          dir launch4j
 
       - name: 6.下载 Windows JDK 用于捆绑 JRE
         run: |
