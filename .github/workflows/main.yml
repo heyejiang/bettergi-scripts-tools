@@ -1073,7 +1073,7 @@ jobs:
           tag_name: ${{ needs.build-jar-linux.outputs.tag_name }}
           name: ${{ needs.build-jar-linux.outputs.tag_name }}
           files: |
-            ${{ github.workspace }}/artifacts/jars-${{ env.TAG_NAME }}.zip
+            ${{ github.workspace }}/artifacts/jars-zip/*.zip
             ${{ github.workspace }}/artifacts/jar-files/*.jar
             ${{ github.workspace }}/artifacts/windows-exes/*.exe
             ${{ github.workspace }}/artifacts/windows-standalone/${{ github.event.repository.name }}-Windows-${{ env.TAG_NAME }}.zip
