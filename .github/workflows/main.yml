@@ -1030,7 +1030,7 @@ jobs:
             GitHub_Release=$(cat "$GitHub_Release_Path")
             echo "✅ 成功读取文件内容：$GitHub_Release_Path"
           else
-            GitHub_Release="未找到文件：$GitHub_Release_Path"
+            GitHub_Release=""
             echo "⚠️ 文件未找到，使用默认内容：$GitHub_Release"
           fi
       
@@ -1060,16 +1060,23 @@ jobs:
           path: artifacts/
           merge-multiple: true
 
-      - name: 3. 创建 Release 并上传文件
+      - name: 3. 检查 artifact
+        run: |
+          echo "当前工作目录：$(pwd)"
+          echo "🚀 检查 artifact"
+          echo "artifact 最终内容预览："
+          tree artifact || ls -R artifact
+
+      - name: 4. 创建 Release 并上传文件
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.build-jar-linux.outputs.tag_name }}
           name: ${{ needs.build-jar-linux.outputs.tag_name }}
           files: |
-            artifacts/jars-zip/*.zip
-            artifacts/jar-files/**/*.jar
-            artifacts/windows-standalone/*.zip
-            artifacts/windows-exes/*.exe
+            artifacts/jars-zip
+            artifacts/jar-files
+            artifacts/windows-standalone
+            artifacts/windows-exes
           body: |
             **发布信息**
             - 标签：${{ needs.build-jar-linux.outputs.tag_name }}
