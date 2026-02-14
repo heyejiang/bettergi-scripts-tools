@@ -494,247 +494,165 @@ jobs:
   #        with:
   #          name: ${{ github.event.repository.name }}-Windows-Standalone
   #          path: ${{ github.event.repository.name }}-Windows-${{ env.TAG_NAME }}.zip
+  # 新 Job: 在 Linux 上生成 Windows EXE（使用 Wine + MinGW）
   build-exe:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     needs: build-jar-linux
     permissions:
       contents: write
     env:
       TAG_NAME: ${{ needs.build-jar-linux.outputs.tag_name }}
       JAVA_VERSION: ${{ needs.build-jar-linux.outputs.java_version }}
-      JAR_DIR_PREFIX: ${{ needs.build-jar-linux.outputs.jar_dir_prefix }}
       ICON_PATH: ${{ github.event.inputs.icon_path || 'frontend/public/logo.ico' }}
     steps:
-      - name: 1.检出代码（用于图标和配置）
+      - name: 1. 检出代码（用于图标和可能需要的资源）
         uses: actions/checkout@v4
 
-      - name: 2.下载 JARs ZIP
+      - name: 2. 下载 JAR ZIP artifact
         uses: actions/download-artifact@v4
         with:
           name: jars-zip
           path: ./
 
-      - name: 3.解压 JARs 到 extracted-jars
+      - name: 3. 解压 JAR 到 extracted-jars
         run: |
-          mkdir extracted-jars
-          Expand-Archive -Path "jars-${{ env.TAG_NAME }}.zip" -DestinationPath extracted-jars
-          dir extracted-jars
+          mkdir -p extracted-jars
+          unzip "jars-${{ env.TAG_NAME }}.zip" -d extracted-jars
+          ls -la extracted-jars
 
-      - name: 4.设置 Java 环境 version=${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: 'temurin'
-
-      - name: 5. 下载 Launch4j（使用 direct link + 完整诊断）
+      - name: 4. 安装 Wine 和 MinGW 工具链（cross-compile Windows exe）
         run: |
-          $url = "https://downloads.sourceforge.net/project/launch4j/launch4j-3/3.50/launch4j-3.50-win32.zip"
-          $zipFile = "launch4j.zip"
-          $expectedSizeMB = 10  # 大约 10MB，实际可能略有浮动
+          sudo dpkg --add-architecture i386
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            wine-stable wine32 \
+            mingw-w64 binutils-mingw-w64-i686 gcc-mingw-w64-i686 g++-mingw-w64-i686 \
+            jq unzip curl wget zip
 
-          Write-Output "开始从 direct link 下载 Launch4j ZIP..."
-          Write-Output "URL: $url"
+      - name: 5. 下载并配置 Launch4j（Linux 版）
+        run: |
+          wget -O launch4j.tgz "https://sourceforge.net/projects/launch4j/files/launch4j-3/3.50/launch4j-3.50-linux-x64.tgz/download"
+          #https://onboardcloud.dl.sourceforge.net/project/launch4j/launch4j-3/3.50/launch4j-3.50-linux-x64.tgz?viasf=1
+          tar -xzf launch4j.tgz -C /tmp
+          chmod +x /tmp/launch4j/launch4j
 
-          # 使用 curl 下载，带重试、超时、User-Agent
-          curl.exe -L -o $zipFile "$url" `
-            --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" `
-            --retry 5 --retry-delay 10 --connect-timeout 60 --max-time 300 `
-            --silent --show-error
+          # 强制使用系统 windres/ld（避免 launch4j 自带工具问题）
+          mkdir -p /tmp/launch4j/bin
+          ln -sf /usr/bin/i686-w64-mingw32-windres /tmp/launch4j/bin/windres
+          ln -sf /usr/bin/i686-w64-mingw32-ld     /tmp/launch4j/bin/ld
+          ln -sf /usr/bin/i686-w64-mingw32-ar     /tmp/launch4j/bin/ar
 
-          if (-not (Test-Path $zipFile)) {
-            Write-Error "curl 下载失败：文件 launch4j.zip 不存在"
+          # 测试
+          /tmp/launch4j/bin/windres --version || exit 1
+
+      - name: 6. 下载 Windows JRE 并捆绑
+        run: |
+          API_URL="https://api.adoptium.net/v3/assets/latest/${{ env.JAVA_VERSION }}/hotspot?image_type=jdk&os=windows&arch=x64&vendor=adoptium"
+          DOWNLOAD_URL=$(curl -s "$API_URL" | jq -r '.[0].binary.package.link // empty')
+
+          if [ -z "$DOWNLOAD_URL" ]; then
+            echo "❌ 获取下载链接失败"
             exit 1
-          }
+          fi
 
-          $fileSizeMB = [math]::Round((Get-Item $zipFile).Length / 1MB, 2)
-          Write-Output "下载完成，大小：$fileSizeMB MB（预期约 $expectedSizeMB MB）"
+          wget -O jdk.zip "$DOWNLOAD_URL"
+          unzip -q jdk.zip -d jdk_extract
+          JDK_ROOT=$(find jdk_extract -mindepth 1 -maxdepth 1 -type d | head -1)
 
-          #          if ($fileSizeMB -lt 5) {
-          #            Write-Error "文件太小（小于 5MB），很可能下载到了网页而非 ZIP 文件"
-          #            Write-Output "文件前 10 行内容（用于诊断）："
-          #            Get-Content $zipFile -First 10 -ErrorAction SilentlyContinue
-          #            exit 1
-          #          }
+          mkdir -p extracted-jars/jre
+          if [[ "${{ env.JAVA_VERSION }}" == "8" ]]; then
+            cp -r "$JDK_ROOT/jre/"* extracted-jars/jre/
+          else
+            cp -r "$JDK_ROOT/"* extracted-jars/jre/
+          fi
 
-          Write-Output "开始解压 ZIP 文件..."
-          Expand-Archive -Path $zipFile -DestinationPath launch4j -Force -Verbose
+          du -sh extracted-jars/jre
+          rm -rf jdk.zip jdk_extract
 
-          Remove-Item $zipFile -Force -ErrorAction SilentlyContinue
-
-          Write-Output "解压完成，目录结构如下："
-          Get-ChildItem launch4j -Recurse | Select-Object FullName, Length | Format-Table -AutoSize
-
-          # 查找 launch4j.exe（兼容不同可能的子目录结构）
-          $exePath = Get-ChildItem launch4j -Recurse -Filter launch4j.exe -File | Select-Object -First 1 -ExpandProperty FullName
-
-          if (-not $exePath) {
-            Write-Error "在 launch4j 目录及其子目录中未找到 launch4j.exe！"
-            Write-Output "请检查上面打印的目录结构是否正确"
-            exit 1
-          }
-
-          Write-Output "找到 launch4j.exe：$exePath"
-          # 可选：设置环境变量，让后续步骤使用绝对路径调用
-          echo "LAUNCH4J_EXE=$exePath" >> $env:GITHUB_ENV
-
-      - name: 6.下载 Windows JDK 用于捆绑 JRE
+      - name: 7. 为每个 JAR 生成 Windows EXE
         run: |
-          # 使用 PowerShell 下載 Adoptium Temurin Windows x64 ZIP
-          # 定義 API 地址，用於獲取指定 Java 版本的最新 JDK 下載鏈接
-          $apiUrl = "https://api.adoptium.net/v3/assets/latest/${{ env.JAVA_VERSION }}/hotspot?image_type=jdk&os=windows&arch=x64&vendor=adoptium"
+          for jar in extracted-jars/*.jar; do
+            [ -f "$jar" ] || continue
 
-          # 調用 REST API 獲取下載鏈接，並提取第一個結果的下載地址
-          $downloadUrl = (Invoke-RestMethod -Uri $apiUrl)[0].binary.package.link
+            jar_name=$(basename "$jar" .jar)
+            exe_file="extracted-jars/${jar_name}.exe"
 
-          # 如果沒有獲取到下載鏈接，則輸出錯誤並退出腳本
-          if (-not $downloadUrl) {
-              Write-Error "No download URL found";
-              exit 1
-          }
-
-          # 輸出當前正在下載的 URL
-          Write-Output "Downloading from $downloadUrl"
-
-          # 使用 WebRequest 下載 JDK ZIP 文件
-          Invoke-WebRequest -Uri $downloadUrl -OutFile jdk.zip
-
-          # 解壓下載的 ZIP 文件到臨時目錄 jdk_extract
-          Expand-Archive -Path jdk.zip -DestinationPath jdk_extract
-
-          # 獲取解壓後的第一個目錄（即 JDK 根目錄）
-          $jdkRoot = Get-ChildItem jdk_extract | Where-Object { $_.PSIsContainer } | Select-Object -First 1 -ExpandProperty FullName
-
-          # 判斷 Java 版本是否小於等於 8
-          if ($env:JAVA_VERSION -le 8) {
-              # 對於 JDK 8 及以下版本，將 jre 目錄移動到 extracted-jars/jre
-              Move-Item -Path "$jdkRoot\jre" -Destination extracted-jars\jre
-          } else {
-              # 對於 JDK 9 及以上版本，將整個 JDK 目錄重命名為 jre 並移動到 extracted-jars/jre
-              Rename-Item -Path $jdkRoot -NewName jre
-              Move-Item -Path jre -Destination extracted-jars\jre
-          }
-            # 清理臨時文件和目錄
-            Remove-Item jdk.zip, jdk_extract -Recurse -Force
-
-      - name: 7. 使用 Launch4j 为每个 JAR 生成 EXE
-        run: |
-          $jars = Get-ChildItem extracted-jars -Filter *.jar
-
-          foreach ($jar in $jars) {
-            $jarName = $jar.BaseName
-            $exeFile = "extracted-jars\$jarName.exe"
-            $absJar = $jar.FullName
-
-            # 提取 Main-Class
-            & jar xf $absJar META-INF/MANIFEST.MF 2>$null
-            $mainClassLine = Get-Content META-INF/MANIFEST.MF | Where-Object { $_ -match "^Main-Class:" }
-            $mainClass = if ($mainClassLine) { $mainClassLine -replace "^Main-Class:\s*", "" -replace "\s*$", "" } else { $null }
-            Remove-Item META-INF -Recurse -Force -ErrorAction SilentlyContinue
-
-            if (-not $mainClass) {
-              Write-Warning "No Main-Class in $jarName.jar, skipping"
-              continue
-            }
+            main_class=$(unzip -p "$jar" META-INF/MANIFEST.MF | grep '^Main-Class:' | sed 's/^Main-Class: *//' | tr -d '\r')
+            [ -z "$main_class" ] && { echo "跳过无 Main-Class 的 $jar"; continue; }
 
             # 版本处理
-            $rawTag = "${{ env.TAG_NAME }}".TrimStart('v')
-            $cleanVersion = $rawTag -replace '[^0-9.]','' -replace '\.+','.'
-            $parts = $cleanVersion.Split('.')
-            $major   = if ($parts[0]) { $parts[0] } else { '0' }
-            $minor   = if ($parts[1]) { $parts[1] } else { '0' }
-            $patch   = if ($parts[2]) { $parts[2] } else { '0' }
-            $build   = if ($parts[3]) { $parts[3] } else { '0' }
-            $fileVersion = "$major.$minor.$patch.$build"
-            $txtVersion  = "${{ env.TAG_NAME }}"
+            raw_tag="${TAG_NAME#v}"
+            clean_ver=$(echo "$raw_tag" | sed 's/[^0-9.]//g' | sed 's/\.\.*/./g')
+            IFS='.' read -r major minor patch build <<< "$clean_ver"
+            file_ver="${major:-0}.${minor:-0}.${patch:-0}.${build:-0}"
 
-            # XML 配置 - 结束符 @ 必须严格在行首，无空格
-            $config = @"
+            config="/tmp/${jar_name}_config.xml"
+            cat > "$config" << EOF
           <launch4jConfig>
-          <dontWrapJar>false</dontWrapJar>
-          <headerType>console</headerType>
-          <jar>$absJar</jar>
-          <outfile>$exeFile</outfile>
-          <errTitle>${{ github.event.repository.name }} Error</errTitle>
-          <classPath><mainClass>$mainClass</mainClass></classPath>
-          <jre>
-          <path>jre;%JAVA_HOME%;%PATH%</path>
-          <minVersion>${{ env.JAVA_VERSION }}.0</minVersion>
-          <maxVersion>${{ env.JAVA_VERSION }}.999</maxVersion>
-          <jdkPreference>preferBundled</jdkPreference>
-          </jre>
-          <versionInfo>
-          <fileVersion>$fileVersion</fileVersion>
-          <txtFileVersion>$txtVersion</txtFileVersion>
-          <productVersion>$fileVersion</productVersion>
-          <txtProductVersion>$txtVersion</txtProductVersion>
-          <fileDescription>${{ github.event.repository.name }} Standalone (Java ${{ env.JAVA_VERSION }})</fileDescription>
-          <copyright>Copyright (c) 2023-$(Get-Date -Format yyyy)</copyright>
-          <productName>${{ github.event.repository.name }}</productName>
-          <internalName>$jarName</internalName>
-          <originalFilename>$jarName.exe</originalFilename>
-          </versionInfo>
-          <icon>${{ github.workspace }}\${{ env.ICON_PATH }}</icon>
+            <dontWrapJar>false</dontWrapJar>
+            <headerType>console</headerType>
+            <jar>$(realpath "$jar")</jar>
+            <outfile>$(realpath "$exe_file")</outfile>
+            <errTitle>${{ github.event.repository.name }} Error</errTitle>
+            <classPath><mainClass>$main_class</mainClass></classPath>
+            <jre>
+              <path>jre;%JAVA_HOME%;%PATH%</path>
+              <minVersion>${{ env.JAVA_VERSION }}.0</minVersion>
+              <maxVersion>${{ env.JAVA_VERSION }}.999</maxVersion>
+              <jdkPreference>preferBundled</jdkPreference>
+            </jre>
+            <versionInfo>
+              <fileVersion>$file_ver</fileVersion>
+              <txtFileVersion>${TAG_NAME}</txtFileVersion>
+              <productVersion>$file_ver</productVersion>
+              <txtProductVersion>${TAG_NAME}</txtProductVersion>
+              <fileDescription>${{ github.event.repository.name }} Standalone</fileDescription>
+              <copyright>Copyright (c) 2023-$(date +%Y)</copyright>
+              <productName>${{ github.event.repository.name }}</productName>
+              <internalName>$jar_name</internalName>
+              <originalFilename>$jar_name.exe</originalFilename>
+            </versionInfo>
+            <icon>/home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}/${{ env.ICON_PATH }}</icon>
           </launch4jConfig>
-          "@
+          EOF
 
-                      $config | Out-File -FilePath "config_$jarName.xml" -Encoding utf8
+            # 用 Wine 执行 launch4j.jar
+            java -Djava.awt.headless=true -jar /tmp/launch4j/launch4j.jar "$config" || exit 1
 
-            & .\launch4j\launch4j.exe "config_$jarName.xml"
+            [ -f "$exe_file" ] && echo "生成成功 $exe_file" || { echo "生成失败 $exe_file"; exit 1; }
+          done
 
-            if (Test-Path $exeFile) {
-              Write-Output "Success: $exeFile created"
-            } else {
-              Write-Error "Failed to create $exeFile"
-              exit 1
-            }
-          }
-
-      - name: 打包独立运行包（EXE + JRE + 配置文件）
+      - name: 8. 打包独立运行包
         run: |
-          # 创建一个名为 standalone-package 的目录，用于存放最终的独立运行包
-          mkdir standalone-package
-          
-          # 将 extracted-jars 目录下的所有 .exe 文件复制到 standalone-package 目录中
-          # 如果没有找到 .exe 文件，则忽略错误继续执行
-          Copy-Item extracted-jars\*.exe standalone-package\ -ErrorAction SilentlyContinue
-          
-          # 将 extracted-jars 目录下的 jre 文件夹递归复制到 standalone-package 目录中
-          # 如果没有找到 jre 文件夹，则忽略错误继续执行
-          Copy-Item -Recurse extracted-jars\jre standalone-package\ -ErrorAction SilentlyContinue
-          
-          # 定义 application-prod.yml 文件的路径
-          $prodYml = "src\main\resources\application-prod.yml"
-          
-          # 检查 application-prod.yml 文件是否存在
-          if (Test-Path $prodYml) {
-              # 如果存在，则将其复制到 standalone-package 目录中
-              Copy-Item $prodYml standalone-package\
-          } else {
-              # 如果不存在，则创建一个默认的 application-prod.yml 文件
-              @"
-          server:
-            port: 8081
-          ws:
-            url: ws://localhost:8081/ws
-            access-token-name: access-token
-          "@ | Out-File standalone-package\application-prod.yml -Encoding utf8
-          }
-          
-          # 将 standalone-package 目录中的所有文件压缩成一个 ZIP 文件
-          # ZIP 文件的名称为仓库名 + Windows + 标签名 + .zip
-          Compress-Archive -Path standalone-package\* -DestinationPath "${{ github.event.repository.name }}-Windows-${{ env.TAG_NAME }}.zip" -Force
+          mkdir -p standalone
+          cp extracted-jars/*.exe standalone/ 2>/dev/null
+          cp -r extracted-jars/jre standalone/ 2>/dev/null
 
-      - name: 上传独立运行包为 Artifact
+          if [ -f src/main/resources/application-prod.yml ]; then
+            cp src/main/resources/application-prod.yml standalone/
+          else
+            cat > standalone/application-prod.yml << 'EOF'
+          server: { port: 8081 }
+          ws: { url: ws://localhost:8081/ws, access-token-name: access-token }
+          EOF
+          fi
+
+          cd standalone
+          zip -r "../${{ github.event.repository.name }}-Windows-${{ env.TAG_NAME }}.zip" ./*
+          cd ..
+          ls -lh "../${{ github.event.repository.name }}-Windows-${{ env.TAG_NAME }}.zip"
+
+      - name: 9. 上传独立运行包
         uses: actions/upload-artifact@v4
         with:
           name: windows-standalone
           path: ${{ github.event.repository.name }}-Windows-${{ env.TAG_NAME }}.zip
 
-      - name: 上传单个 EXE 文件（可选）
+      - name: 10. 上传单个 EXE（可选）
         uses: actions/upload-artifact@v4
         with:
           name: windows-exes
-          path: extracted-jars\*.exe
+          path: extracted-jars/*.exe
 
 
   build-and-push-docker:
