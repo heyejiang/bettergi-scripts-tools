@@ -45,6 +45,7 @@ public class TokenAspect implements AbsToken {
                 //可能有空指针问题
                 HttpServletRequest request = attributes.getRequest();
                 String token = request.getHeader(tokenName);
+                log.debug("tokenName: {}, tokenValue: {}, token: {}", tokenName, tokenValue, token);
                 if (!StrUtil.equals(token, tokenValue)) {
                     throw new GlobalException("token校验失败");
                 }
