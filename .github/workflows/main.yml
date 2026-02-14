@@ -505,34 +505,19 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
 
-      - name: 5.下载 Launch4j（Windows 版本）
+      - name: 5. 下载 Launch4j 使用 curl（更可靠）
         run: |
           $url = "https://sourceforge.net/projects/launch4j/files/launch4j-3/3.50/launch4j-3.50-win32.zip/download"
-          $outFile = "launch4j.zip"
-          $maxRetries = 5
-          $retryCount = 0
-            
-          while ($retryCount -lt $maxRetries) {
-            try {
-              Invoke-WebRequest -Uri $url -OutFile $outFile -UseBasicParsing -TimeoutSec 60
-              Write-Output "下载成功"
-              break
-            } catch {
-              $retryCount++
-              Write-Output "下载失败 (尝试 $retryCount/$maxRetries)，等待 10 秒后重试..."
-              Start-Sleep -Seconds 10
-            }
-          }
-            
-          if (-not (Test-Path $outFile)) {
-            Write-Error "下载 launch4j 失败，已重试 $maxRetries 次"
+          curl.exe -L -o launch4j.zip "$url" --user-agent "Mozilla/5.0" --retry 5 --retry-delay 10 --connect-timeout 30
+          if (-not (Test-Path launch4j.zip)) {
+            Write-Error "curl 下载失败"
             exit 1
           }
-            
-          Expand-Archive -Path $outFile -DestinationPath launch4j -Force
-          Remove-Item $outFile -Force
+          Write-Output "下载完成，大小："
+          Get-Item launch4j.zip | Select Length
+          Expand-Archive launch4j.zip -DestinationPath launch4j -Force
+          Remove-Item launch4j.zip
           dir launch4j
-
       - name: 6.下载 Windows JDK 用于捆绑 JRE
         run: |
           # 使用 PowerShell 下載 Adoptium Temurin Windows x64 ZIP
