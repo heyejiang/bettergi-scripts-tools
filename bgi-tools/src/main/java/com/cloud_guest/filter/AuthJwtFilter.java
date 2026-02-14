@@ -2,6 +2,7 @@ package com.cloud_guest.filter;
 
 import cn.hutool.core.util.StrUtil;
 import com.cloud_guest.abs.AuthFilter;
+import com.cloud_guest.aop.bean.AbsBean;
 import com.cloud_guest.enums.ApiCode;
 import com.cloud_guest.exception.exceptions.GlobalException;
 import com.cloud_guest.utils.AuthContextUtil;
@@ -17,13 +18,14 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-public class AuthJwtFilter extends OncePerRequestFilter implements AuthFilter {
+public class AuthJwtFilter extends OncePerRequestFilter implements AuthFilter, AbsBean {
 
     @Resource
     private JwtUtil jwtUtil;
 
     @Override
     public boolean setToken(String token) {
+        log().debug("setToken: {}", token);
         boolean validateToken = jwtUtil.validateToken(token);
         if (validateToken) {
             String username = jwtUtil.getUsernameFromToken(token);
