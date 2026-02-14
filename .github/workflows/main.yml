@@ -193,30 +193,51 @@ jobs:
             mvn clean package -B -Dquickly
           fi
 
-      - name: 8. 列出生成的 JAR 文件
+      - name: 8.列出匹配的 JAR 文件
         run: |
-          find . -type f -name "*.jar" -path "*/target/*" || echo "未找到 JAR 文件"
+          if [ "${{ env.JAR_DIR_PREFIX  }}" = "" ]; then
+            echo "匹配的 JAR 文件 (*/target/*.jar):"
+            find . -type f -path "*/target/*.jar" || echo "未找到匹配的 JAR 文件"
+          else
+            echo "匹配的 JAR 文件 (*/${{ env.JAR_DIR_PREFIX  }}/*/target/*.jar):"
+            find . -type f -path "*/${{ env.JAR_DIR_PREFIX  }}/*/target/*.jar" || echo "未找到匹配的 JAR 文件"
+          fi
 
-      - name: 9. 将 JAR 文件打包成 ZIP
+      - name: 9.打包所有 JAR 文件成 ZIP
         run: |
-          find . -type f -name "*.jar" -path "*/target/*" -exec zip -j jars-${{ env.TAG_NAME }}.zip {} +
+          if [ "${{ env.JAR_DIR_PREFIX }}" = "" ]; then
+            find . -type f -path "*/target/*.jar" -exec zip -j jars-${{ env.TAG_NAME }}.zip {} +
+          else
+            find . -type f -path "*/${{ env.JAR_DIR_PREFIX  }}/*/target/*.jar" -exec zip -j jars-${{ env.TAG_NAME }}.zip {} +
+          fi
+          # -j: 仅打包文件，不保留目录结构
+          # +: 尽量将多个文件放入一个 zip 命令，减少调用次数
+        shell: bash
 
       - name: 10. 验证 JAR ZIP 文件
         run: |
           ls -la jars-${{ env.TAG_NAME }}.zip
           unzip -l jars-${{ env.TAG_NAME }}.zip
 
-      - name: 11. 上传 JAR ZIP 供 Windows 使用
+      - name: 11.解压 ZIP 文件
+        run: |
+          mkdir -p extracted-jars
+          unzip jars-${{ env.TAG_NAME }}.zip -d extracted-jars
+          echo "解压后的文件:"
+          ls -la extracted-jars
+
+      - name: 12. 上传 JAR ZIP 供 Windows 使用
         uses: actions/upload-artifact@v4
         with:
           name: jars-zip
           path: jars-${{ env.TAG_NAME }}.zip
 
-      - name: 12. 上传单个 JAR 文件
+      - name: 13. 上传单个 JAR 文件
         uses: actions/upload-artifact@v4
         with:
           name: jar-files
-          path: "**/target/*.jar"
+          path: extracted-jars/*.jar
+
 #       - name: 12. 将 JAR 文件转换为独立 EXE（捆绑私有 JRE，完全独立运行）
   #        run: |
   #          # ============ 下载 Launch4j ============
