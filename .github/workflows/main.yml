@@ -1063,9 +1063,9 @@ jobs:
       - name: 3. 检查 artifact
         run: |
           echo "当前工作目录：$(pwd)"
-          echo "🚀 检查 /tmp/artifact"
-          echo "/tmp/artifact 最终内容预览："
-          tree /tmp/artifact || ls -R /tmp/artifact
+          echo "🚀 检查 /tmp/artifacts"
+          echo "/tmp/artifacts 最终内容预览："
+          tree /tmp/artifacts || ls -R /tmp/artifacts
 
       - name: 4. 创建 Release 并上传文件
         uses: softprops/action-gh-release@v2
