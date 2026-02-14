@@ -585,14 +585,12 @@ jobs:
             Remove-Item jdk.zip, jdk_extract -Recurse -Force
       - name: 7. 使用 Launch4j 为每个 JAR 生成 EXE
         run: |
-          # 获取 extracted-jars 目录下所有的 .jar 文件
           $jars = Get-ChildItem extracted-jars -Filter *.jar
 
           foreach ($jar in $jars) {
             $jarName = $jar.BaseName
             $exeFile = "extracted-jars\$jarName.exe"
             $absJar = $jar.FullName
-            $absExe = (Resolve-Path $exeFile).Path
 
             # 提取 Main-Class
             & jar xf $absJar META-INF/MANIFEST.MF 2>$null
@@ -609,20 +607,20 @@ jobs:
             $rawTag = "${{ env.TAG_NAME }}".TrimStart('v')
             $cleanVersion = $rawTag -replace '[^0-9.]','' -replace '\.+','.'
             $parts = $cleanVersion.Split('.')
-            $major = if ($parts[0]) { $parts[0] } else { '0' }
-            $minor = if ($parts[1]) { $parts[1] } else { '0' }
-            $patch = if ($parts[2]) { $parts[2] } else { '0' }
-            $build = if ($parts[3]) { $parts[3] } else { '0' }
+            $major   = if ($parts[0]) { $parts[0] } else { '0' }
+            $minor   = if ($parts[1]) { $parts[1] } else { '0' }
+            $patch   = if ($parts[2]) { $parts[2] } else { '0' }
+            $build   = if ($parts[3]) { $parts[3] } else { '0' }
             $fileVersion = "$major.$minor.$patch.$build"
-            $txtVersion = "${{ env.TAG_NAME }}"
+            $txtVersion  = "${{ env.TAG_NAME }}"
 
-            # XML 配置（结束符 @ 必须独占一行、无前置空格）
+            # XML 配置 - 结束符 @ 必须严格在行首，无空格
             $config = @"
           <launch4jConfig>
           <dontWrapJar>false</dontWrapJar>
           <headerType>console</headerType>
           <jar>$absJar</jar>
-          <outfile>$absExe</outfile>
+          <outfile>$exeFile</outfile>
           <errTitle>${{ github.event.repository.name }} Error</errTitle>
           <classPath><mainClass>$mainClass</mainClass></classPath>
           <jre>
@@ -645,11 +643,11 @@ jobs:
           <icon>${{ github.workspace }}\${{ env.ICON_PATH }}</icon>
           </launch4jConfig>
           "@
-        
-                    $config | Out-File -FilePath "config_$jarName.xml" -Encoding utf8
           
-          & .\launch4j\launch4j.exe "config_$jarName.xml"
-          
+                      $config | Out-File -FilePath "config_$jarName.xml" -Encoding utf8
+            
+            & .\launch4j\launch4j.exe "config_$jarName.xml"
+            
           if (Test-Path $exeFile) {
             Write-Output "Success: $exeFile created"
           } else {
