@@ -977,14 +977,29 @@ jobs:
     needs: [build-jar-linux, build-exe]
     if: ${{ needs.build-jar-linux.outputs.push_to_github_release == 'true' }}
     steps:
-      - name: 1. 下载所有 artifact
+      - name: 1. 设置发布信息
+        run: |
+            echo "当前工作目录：$(pwd)"
+            echo "🚀 发布到 GitHub Release" 
+            # 初始化默认值
+            DESC ="${{ github.event.inputs.desc ||'' }}"
+
+            # 写入环境变量
+            echo "DESC=$DESC" >> $GITHUB_ENV
+
+            echo "═══════════════════════════════════════════"
+            echo "最终设置值："
+            echo "  DESC                   : $DESC"
+            echo "═══════════════════════════════════════════"
+
+      - name: 2. 下载所有 artifact
         uses: actions/download-artifact@v4
         with:
           pattern: '*'
           path: artifacts/
           merge-multiple: true
 
-      - name: 2. 创建 Release 并上传文件
+      - name: 3. 创建 Release 并上传文件
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.build-jar-linux.outputs.tag_name }}
@@ -1007,7 +1022,7 @@ jobs:
             - jars-*.zip：原始 JAR 包
             - 单个 .jar / .exe
 
-            ${{ github.event.inputs.desc }}
+            ${{ env.DESC }}
 
             系统要求：Windows 10/11 x64
           draft: ${{ github.event.inputs.draft || false }}
