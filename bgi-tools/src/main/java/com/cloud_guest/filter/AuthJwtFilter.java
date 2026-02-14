@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.cloud_guest.abs.AuthFilter;
 import com.cloud_guest.enums.ApiCode;
 import com.cloud_guest.exception.exceptions.GlobalException;
+import com.cloud_guest.utils.AuthContextUtil;
 import com.cloud_guest.utils.jwt.JwtUtil;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -29,10 +30,7 @@ public class AuthJwtFilter extends OncePerRequestFilter implements AuthFilter {
             if (StrUtil.isEmpty(username)){
                 return false;
             }
-            // 简单起见，不设权限，只放用户名进去
-            UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                    username, null, null);
-            SecurityContextHolder.getContext().setAuthentication(auth);
+            AuthContextUtil.setUsername(username);
         }
         return validateToken;
     }
