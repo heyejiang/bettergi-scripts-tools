@@ -1076,7 +1076,7 @@ jobs:
             ${{ github.workspace }}/artifacts/jars-zip/*.zip
             ${{ github.workspace }}/artifacts/jar-files/*.jar
             ${{ github.workspace }}/artifacts/windows-exes/*.exe
-            ${{ github.workspace }}/artifacts/windows-standalone/${{ github.event.repository.name }}-Windows-${{ env.TAG_NAME }}.zip
+            ${{ github.workspace }}/artifacts/windows-standalone/*.zip
           body: |
             **发布信息**
             - 标签：${{ needs.build-jar-linux.outputs.tag_name }}
