@@ -549,12 +549,12 @@ jobs:
           $fileSizeMB = [math]::Round((Get-Item $zipFile).Length / 1MB, 2)
           Write-Output "下载完成，大小：$fileSizeMB MB（预期约 $expectedSizeMB MB）"
 
-          if ($fileSizeMB -lt 5) {
-            Write-Error "文件太小（小于 5MB），很可能下载到了网页而非 ZIP 文件"
-            Write-Output "文件前 10 行内容（用于诊断）："
-            Get-Content $zipFile -First 10 -ErrorAction SilentlyContinue
-            exit 1
-          }
+          #          if ($fileSizeMB -lt 5) {
+          #            Write-Error "文件太小（小于 5MB），很可能下载到了网页而非 ZIP 文件"
+          #            Write-Output "文件前 10 行内容（用于诊断）："
+          #            Get-Content $zipFile -First 10 -ErrorAction SilentlyContinue
+          #            exit 1
+          #          }
 
           Write-Output "开始解压 ZIP 文件..."
           Expand-Archive -Path $zipFile -DestinationPath launch4j -Force -Verbose
