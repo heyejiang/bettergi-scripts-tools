@@ -199,8 +199,8 @@ jobs:
             echo "匹配的 JAR 文件 (*/target/*.jar):"
             find . -type f -path "*/target/*.jar" || echo "未找到匹配的 JAR 文件"
           else
-            echo "匹配的 JAR 文件 (*/${{ env.JAR_DIR_PREFIX  }}/*/target/*.jar):"
-            find . -type f -path "*/${{ env.JAR_DIR_PREFIX  }}/*/target/*.jar" || echo "未找到匹配的 JAR 文件"
+            echo "匹配的 JAR 文件 (*/${{ env.JAR_DIR_PREFIX  }}/*/target/*.jar,*/${{ env.JAR_DIR_PREFIX  }}/target/*.jar):"
+            find . -type f \( -path "*/${{ env.JAR_DIR_PREFIX }}/*/target/*.jar" -o -path "*/${{ env.JAR_DIR_PREFIX }}/target/*.jar" \)|| echo "未找到匹配的 JAR 文件"
           fi
 
       - name: 9.打包所有 JAR 文件成 ZIP
