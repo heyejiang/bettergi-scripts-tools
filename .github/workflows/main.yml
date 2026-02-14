@@ -544,6 +544,8 @@ jobs:
 
           # 测试
           /tmp/launch4j/bin/windres --version || exit 1
+          echo "/tmp/launch4j/ 文件："
+          ls -lh /tmp/launch4j/ || echo "没有文件"
 
       - name: 6. 下载 Windows JRE 并捆绑
         run: |
