@@ -581,10 +581,8 @@ jobs:
               Rename-Item -Path $jdkRoot -NewName jre
               Move-Item -Path jre -Destination extracted-jars\jre
           }
-          
           # 清理臨時文件和目錄
           Remove-Item jdk.zip, jdk_extract -Recurse -Force
-
       - name: 7. 使用 Launch4j 为每个 JAR 生成 EXE
         run: |
           # 获取 extracted-jars 目录下所有的 .jar 文件
