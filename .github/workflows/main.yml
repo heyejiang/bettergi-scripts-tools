@@ -710,21 +710,29 @@ jobs:
           echo "standalone-package 最终内容预览："
           tree standalone-package || ls -R standalone-package
 
-          # 打包
-          zip_name="${{ github.event.repository.name }}-Windows-${{ env.TAG_NAME }}.zip"
-          cd standalone-package
-          zip -r "../$zip_name" ./*
-          cd ..
-
-          # 检查打包结果
-          if [ -f "../$zip_name" ]; then
-            echo "打包成功：$zip_name"
-            ls -lh "../$zip_name"
-            du -sh "../$zip_name"
+          # 执行打包
+          ZIP_NAME="${{ github.event.repository.name }}-Windows-${{ env.TAG_NAME }}.zip"
+          echo "开始创建 ZIP 包: $ZIP_NAME"
+          
+          if zip -r "$ZIP_NAME" standalone-package/*; then
+            echo "✅ 打包成功"
+          
+            # 验证打包结果
+            if [ -f "$ZIP_NAME" ]; then
+              echo "ZIP 文件信息："
+              ls -lh "$ZIP_NAME"
+              du -sh "$ZIP_NAME"
+              unzip -l "$ZIP_NAME" | head -20
+            else
+              echo "❌ 打包文件未生成"
+              exit 1
+            fi
           else
-            echo "打包失败：$zip_name 不存在"
+            echo "❌ 打包过程出错"
             exit 1
           fi
+          
+          echo "=== 打包完成 ==="
 
       - name: 上传所有生成的 EXE 和 JRE（调试用）
         uses: actions/upload-artifact@v4
