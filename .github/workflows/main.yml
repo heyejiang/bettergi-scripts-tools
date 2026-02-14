@@ -669,27 +669,66 @@ jobs:
           echo "所有生成的 exe 文件："
           ls -lh extracted-exes || echo "没有生成任何 exe"
 
-      - name: 8. 打包独立运行包
+      - name: 8. 打包独立运行包（EXE + JRE + 配置文件）
         run: |
-          mkdir -p standalone
-          cp extracted-exes/*.exe standalone/ 2>/dev/null
-          cp -r extracted-exes/jre standalone/ 2>/dev/null
+          echo "当前工作目录：$(pwd)"
+          ls -la extracted-jars extracted-exes || echo "目录检查"
 
+          # 创建最终打包目录
+          mkdir -p standalone-package
+
+          # 拷贝所有 exe 到打包目录根目录
+          echo "拷贝 exe 文件..."
+          cp extracted-exes/*.exe standalone-package/ 2>/dev/null || echo "警告：没有找到 exe 文件"
+
+          # 创建 jre 子目录，并从 extracted-jars/jre 拷贝过来
+          echo "拷贝 JRE 到 extracted-exes/jre → standalone-package/jre"
+          mkdir -p extracted-exes/jre
+          cp -r extracted-jars/jre/* extracted-exes/jre/ 2>/dev/null || echo "警告：JRE 拷贝失败（可能 jre 不存在）"
+          
+          # 再把 extracted-exes/jre 拷贝到打包目录
+          cp -r extracted-exes/jre standalone-package/ 2>/dev/null || echo "警告：最终 jre 拷贝失败"
+
+          # 配置文件
           if [ -f src/main/resources/application-prod.yml ]; then
-            cp src/main/resources/application-prod.yml standalone/
+            cp src/main/resources/application-prod.yml standalone-package/
+            echo "已拷贝 application-prod.yml"
           else
-            cat > standalone/application-prod.yml << 'EOF'
-          server: { port: 8081 }
-          ws: { url: ws://localhost:8081/ws, access-token-name: access-token }
+            cat > standalone-package/application-prod.yml << 'EOF'
+          server:
+            port: 8081
+          ws:
+            url: ws://localhost:8081/ws
+            access-token-name: access-token
           EOF
+            echo "使用默认配置文件"
           fi
 
-          cd standalone
-          echo "standalone下目录:"
-          ls -la ./
-          zip -r "../${{ github.event.repository.name }}-Windows-${{ env.TAG_NAME }}.zip" ./*
+          # 预览打包内容
+          echo "standalone-package 最终内容预览："
+          tree standalone-package || ls -R standalone-package
+
+          # 打包
+          zip_name="${{ github.event.repository.name }}-Windows-${{ env.TAG_NAME }}.zip"
+          cd standalone-package
+          zip -r "../$zip_name" ./*
           cd ..
-          ls -lh "../${{ github.event.repository.name }}-Windows-${{ env.TAG_NAME }}.zip"
+
+          # 检查打包结果
+          if [ -f "../$zip_name" ]; then
+            echo "打包成功：$zip_name"
+            ls -lh "../$zip_name"
+            du -sh "../$zip_name"
+          else
+            echo "打包失败：$zip_name 不存在"
+            exit 1
+          fi
+
+      - name: 上传所有生成的 EXE 和 JRE（调试用）
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-exes-and-jre
+          path: extracted-exes/
 
       - name: 9. 上传独立运行包
         uses: actions/upload-artifact@v4
