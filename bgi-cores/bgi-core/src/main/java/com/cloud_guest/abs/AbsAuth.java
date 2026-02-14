@@ -51,7 +51,7 @@ public interface AbsAuth {
             String bearer = "Bearer";
             String token = "";
             if (authHeader.startsWith(bearer)) {
-                token = authHeader.substring(bearer.length() - 1);
+                token = authHeader.substring(bearer.length());
             }else {
                 token = authHeader;
             }
