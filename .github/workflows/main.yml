@@ -575,7 +575,7 @@ jobs:
             [ -f "$jar" ] || continue
 
             jar_name=$(basename "$jar" .jar)
-            exe_file="extracted-jars/${jar_name}.exe"
+            exe_file="extracted-exe/${jar_name}.exe"
 
             main_class=$(unzip -p "$jar" META-INF/MANIFEST.MF | grep '^Main-Class:' | sed 's/^Main-Class: *//' | tr -d '\r')
             [ -z "$main_class" ] && { echo "跳过无 Main-Class 的 $jar"; continue; }
@@ -625,8 +625,8 @@ jobs:
       - name: 8. 打包独立运行包
         run: |
           mkdir -p standalone
-          cp extracted-jars/*.exe standalone/ 2>/dev/null
-          cp -r extracted-jars/jre standalone/ 2>/dev/null
+          cp extracted-exe/*.exe standalone/ 2>/dev/null
+          cp -r extracted-exe/jre standalone/ 2>/dev/null
 
           if [ -f src/main/resources/application-prod.yml ]; then
             cp src/main/resources/application-prod.yml standalone/
@@ -638,6 +638,8 @@ jobs:
           fi
 
           cd standalone
+          echo "standalone下目录:"
+          ls -la ./
           zip -r "../${{ github.event.repository.name }}-Windows-${{ env.TAG_NAME }}.zip" ./*
           cd ..
           ls -lh "../${{ github.event.repository.name }}-Windows-${{ env.TAG_NAME }}.zip"
@@ -652,7 +654,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-exes
-          path: extracted-jars/*.exe
+          path: extracted-exes/*.exe
 
 
   build-and-push-docker:
