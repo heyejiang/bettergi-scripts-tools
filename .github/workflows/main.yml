@@ -1058,7 +1058,7 @@ jobs:
         with:
           pattern: '*'
           path: artifacts/
-          merge-multiple: true
+          #merge-multiple: true
 
       - name: 3. 检查 artifact
         run: |
