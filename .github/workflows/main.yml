@@ -59,6 +59,11 @@ on:
         required: false
         type: string
         default: 'frontend/public/logo.ico'
+      gitHub_release_text_path:
+        description: 'Release 描述信息文件读取路径'
+        required: false
+        type: string
+        default: ''
 
 env:
   REGISTRY: ghcr.io
@@ -238,7 +243,7 @@ jobs:
           name: jar-files
           path: /tmp/extracted-jars/*.jar
 
-#       - name: 12. 将 JAR 文件转换为独立 EXE（捆绑私有 JRE，完全独立运行）
+  #       - name: 12. 将 JAR 文件转换为独立 EXE（捆绑私有 JRE，完全独立运行）
   #        run: |
   #          # ============ 下载 Launch4j ============
   #          wget --tries=5 --timeout=60 \
@@ -974,23 +979,48 @@ jobs:
   # 发布到 GitHub Release
   push-release:
     runs-on: ubuntu-latest
-    needs: [build-jar-linux, build-exe]
+    needs: [ build-jar-linux, build-exe ]
     if: ${{ needs.build-jar-linux.outputs.push_to_github_release == 'true' }}
     steps:
       - name: 1. 设置发布信息
         run: |
-            echo "当前工作目录：$(pwd)"
-            echo "🚀 发布到 GitHub Release" 
-            # 初始化默认值
-            DESC ="${{ github.event.inputs.desc ||'' }}"
+          echo "当前工作目录：$(pwd)"
+          echo "🚀 发布到 GitHub Release"
+      
+          # 初始化默认值
+          DESC="${{ github.event.inputs.desc || '' }}"
+          GitHub_Release_Text_Path="${{ github.event.inputs.gitHub_release_text_path || 'GitHub_Release.txt' }}"
+      
+          # 构造文件路径（使用正确的仓库路径）
+          GitHub_Release_Path="/home/runner/work/${{ github.event.repository.name  }}/${{ github.event.repository.name  }}/$GitHub_Release_Text_Path"
+      
+          # 读取文件内容并处理
+          if [ -f "$GitHub_Release_Path" ]; then
+            GitHub_Release=$(cat "$GitHub_Release_Path")
+            echo "✅ 成功读取文件内容：$GitHub_Release_Path"
+          else
+            GitHub_Release="未找到文件：$GitHub_Release_Path"
+            echo "⚠️ 文件未找到，使用默认内容：$GitHub_Release"
+          fi
+      
+          # 根据 DESC 是否为空决定是否覆盖
+          if [ -n "$DESC" ]; then
+            echo "DESC 已设置为自定义值：$DESC"
+          else
+            DESC="$GitHub_Release"
+            echo "DESC 未设置，使用文件内容：$DESC"
+          fi
+      
+          # 写入环境变量
+          echo "DESC=$DESC" >> $GITHUB_ENV
+          echo "GITHUB_RELEASE=$GitHub_Release" >> $GITHUB_ENV
+      
+          echo "═══════════════════════════════════════════"
+          echo "最终设置值："
+          echo "  DESC           : $DESC"
+          echo "  GITHUB_RELEASE : $GitHub_Release"
+          echo "═══════════════════════════════════════════"
 
-            # 写入环境变量
-            echo "DESC=$DESC" >> $GITHUB_ENV
-
-            echo "═══════════════════════════════════════════"
-            echo "最终设置值："
-            echo "  DESC                   : $DESC"
-            echo "═══════════════════════════════════════════"
 
       - name: 2. 下载所有 artifact
         uses: actions/download-artifact@v4
