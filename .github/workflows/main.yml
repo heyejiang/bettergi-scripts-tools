@@ -1067,32 +1067,88 @@ jobs:
           echo "/tmp/artifacts 最终内容预览："
           tree /tmp/artifacts || ls -R /tmp/artifacts
 
-      - name: 4. 创建 Release 并上传文件
+      - name: 4. 解压并整理文件
+        run: |
+          # 定义变量
+          ARTIFACTS_DIR="/tmp/artifacts"
+          TARGET_DIR="./release-assets"
+          
+          # 创建目标目录
+          mkdir -p "$TARGET_DIR"
+          
+          # 解压各 artifact 并检查结果
+          echo "🔍 开始解压文件..."
+          
+          # 解压 windows-standalone.zip
+          if [ -f "$ARTIFACTS_DIR/windows-standalone.zip" ]; then
+            unzip -q "$ARTIFACTS_DIR/windows-standalone.zip" -d "$TARGET_DIR" && \
+              echo "✅ windows-standalone.zip 解压成功" || \
+              { echo "❌ windows-standalone.zip 解压失败"; exit 1; }
+          else
+            echo "⚠️ windows-standalone.zip 不存在"
+          fi
+          
+          # 解压 jars-zip.zip
+          if [ -f "$ARTIFACTS_DIR/jars-zip.zip" ]; then
+            unzip -q "$ARTIFACTS_DIR/jars-zip.zip" -d "$TARGET_DIR" && \
+              echo "✅ jars-zip.zip 解压成功" || \
+              { echo "❌ jars-zip.zip 解压失败"; exit 1; }
+          else
+            echo "⚠️ jars-zip.zip 不存在"
+          fi
+          
+          # 解压 jars-file.zip 到 extracted-jars
+          if [ -f "$ARTIFACTS_DIR/jars-file.zip" ]; then
+            mkdir -p "$TARGET_DIR/extracted-jars"
+            unzip -q "$ARTIFACTS_DIR/jars-file.zip" -d "$TARGET_DIR/extracted-jars" && \
+              echo "✅ jars-file.zip 解压成功" || \
+              { echo "❌ jars-file.zip 解压失败"; exit 1; }
+          else
+            echo "⚠️ jars-file.zip 不存在"
+          fi
+          
+          # 解压 windows-exes.zip 到 extracted-exes
+          if [ -f "$ARTIFACTS_DIR/windows-exes.zip" ]; then
+            mkdir -p "$TARGET_DIR/extracted-exes"
+            unzip -q "$ARTIFACTS_DIR/windows-exes.zip" -d "$TARGET_DIR/extracted-exes" && \
+              echo "✅ windows-exes.zip 解压成功" || \
+              { echo "❌ windows-exes.zip 解压失败"; exit 1; }
+          else
+            echo "⚠️ windows-exes.zip 不存在"
+          fi
+          
+          # 列出解压后的文件
+          echo "📂 解压后文件结构："
+          tree "$TARGET_DIR" || ls -R "$TARGET_DIR"
+
+      - name: 5. 创建 Release 并上传文件
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.build-jar-linux.outputs.tag_name }}
           name: ${{ needs.build-jar-linux.outputs.tag_name }}
           files: |
-            /tmp/artifacts/jars-zip
-            /tmp/artifacts/jar-files
-            /tmp/artifacts/windows-standalone
-            /tmp/artifacts/windows-exes
+            ${{ github.workspace }}/release-assets/jars-${{ env.TAG_NAME }}.zip
+            ${{ github.workspace }}/release-assets/extracted-jars/*.jar
+            ${{ github.workspace }}/release-assets/extracted-exes/*.exe
+            ${{ github.workspace }}/release-assets/${{ github.event.repository.name }}-Windows-${{ env.TAG_NAME }}.zip
           body: |
             **发布信息**
             - 标签：${{ needs.build-jar-linux.outputs.tag_name }}
             - Java 版本：${{ needs.build-jar-linux.outputs.java_version }}
-
-            **推荐下载**（无需安装 Java）
+            
+            ### 🏆 推荐下载（完全独立运行，无需安装 Java）
             ${{ github.event.repository.name }}-Windows-${{ needs.build-jar-linux.outputs.tag_name }}.zip  
             → 解压后直接双击 .exe 运行
-
-            其他文件：
+            
+            ### 📦 其他文件
             - jars-*.zip：原始 JAR 包
             - 单个 .jar / .exe
-
+      
             ${{ env.DESC }}
-
-            系统要求：Windows 10/11 x64
+            
+            **系统要求**：Windows 10/11 x64  
+            **运行方式**：推荐使用独立包，双击即跑
+            如有问题欢迎反馈！
           draft: ${{ github.event.inputs.draft || false }}
           prerelease: ${{ github.event.inputs.prerelease || false }}
         env:
