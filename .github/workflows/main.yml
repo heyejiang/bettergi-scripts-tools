@@ -8,6 +8,10 @@
 name: Java Jar To Zip Publish
 run-name: "[${{ (github.event_name == 'push' || ((inputs.push_to_docker_registry || inputs.push_to_github_release) == true)) && '正式版' || '测试版' }}] ${{ github.event.repository.name }} ${{ github.event.inputs.tag_name || github.ref_name || 'v-manual' }}  version"
 
+permissions:
+  contents: write          # 必须！允许创建/更新 Release + 上传 assets
+  packages: write          # 如果你推送 Docker 镜像，也需要这个
+
 on:
   push:
     branches:
@@ -1050,6 +1054,7 @@ jobs:
           echo "最终设置值："
           echo "  DESC           : $DESC"
           echo "  GITHUB_RELEASE : $GitHub_Release"
+          echo "  tag_name : ${{ needs.build-jar-linux.outputs.tag_name }}"
           echo "═══════════════════════════════════════════"
 
 
