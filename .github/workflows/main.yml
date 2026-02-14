@@ -1057,15 +1057,15 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: '*'
-          path: artifacts/
+          path: /tmp/artifacts/
           #merge-multiple: true
 
       - name: 3. 检查 artifact
         run: |
           echo "当前工作目录：$(pwd)"
-          echo "🚀 检查 artifact"
-          echo "artifact 最终内容预览："
-          tree artifact || ls -R artifact
+          echo "🚀 检查 /tmp/artifact"
+          echo "/tmp/artifact 最终内容预览："
+          tree /tmp/artifact || ls -R /tmp/artifact
 
       - name: 4. 创建 Release 并上传文件
         uses: softprops/action-gh-release@v2
@@ -1073,10 +1073,10 @@ jobs:
           tag_name: ${{ needs.build-jar-linux.outputs.tag_name }}
           name: ${{ needs.build-jar-linux.outputs.tag_name }}
           files: |
-            artifacts/jars-zip
-            artifacts/jar-files
-            artifacts/windows-standalone
-            artifacts/windows-exes
+            /tmp/artifacts/jars-zip
+            /tmp/artifacts/jar-files
+            /tmp/artifacts/windows-standalone
+            /tmp/artifacts/windows-exes
           body: |
             **发布信息**
             - 标签：${{ needs.build-jar-linux.outputs.tag_name }}
