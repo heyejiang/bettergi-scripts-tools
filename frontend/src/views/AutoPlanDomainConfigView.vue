@@ -1,12 +1,12 @@
 <script setup>
 import {ref, computed, watch, watchEffect, onMounted} from 'vue'
-import {ElMessage} from "element-plus";
+import {ElMessage, ElMessageBox} from "element-plus";
 import {getBaseJsonAll, getUidJson, postUidJson, removeUidList} from "@api/domain/autoPlan";
 import {CopyToClipboard} from "@utils/local.js";
 import {domainsDefault, domainTypesDefault, excludeDomainTypesDefault, selectedAsDaysMap} from "@utils/defaultdata.js";
 import router from "@router/router.js";
 import draggable from 'vuedraggable'
-
+import { debounce } from 'lodash-es';
 // 配置列表 → 核心数据结构改为 array
 const configs = ref([])
 const currentConfig = ref([])
@@ -54,7 +54,11 @@ const removeConfigToBackend = async () => {
     ElMessage.warning("请先设置 UID");
     return;
   }
-
+  await ElMessageBox.confirm(`确定移除UID:${uid.value}的云端数据吗？`, '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  })
   let ids = []
   ids.push(uid.value)
   const uidStr = ids.join(',');
@@ -66,6 +70,11 @@ const submitConfigToBackend = async () => {
     ElMessage.warning("请先设置 UID");
     return;
   }
+  await ElMessageBox.confirm(`确定提交UID:${uid.value}的数据至云端吗？`, '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  })
   const json = getFinalConfigs()
   await postUidJson(uid.value, JSON.stringify(json))
 };
@@ -74,13 +83,17 @@ const findDomains = async () => {
     ElMessage.warning("请先设置 UID");
     return;
   }
-
+  await ElMessageBox.confirm(`确定加载UID:${uid.value}的云端数据吗？`, '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  })
   try {
     const response = await getUidJson(uid.value)
     configs.value = response;
   } catch (error) {
     console.error('请求失败:', error);
-    ElMessage.error( error.message);
+    ElMessage.error(error.message);
   } finally {
   }
 };
@@ -98,12 +111,8 @@ const orderSortConfigs = ref(false)
 const uid = ref("")
 // 新增一条空白配置
 const addConfig = () => {
-  const newOrder = configs.value.length === 0
-      ? 1
-      : Math.max(...configs.value.map(c => c.order)) + 1
-
   configs.value.push({
-    order: newOrder,
+    order: 1,
     // day: undefined,
     days: [],
     dayName: undefined,
@@ -130,7 +139,12 @@ const addConfig = () => {
   changSortConfigs()
 
 }
-const removeConfigAll = () => {
+const removeConfigAll = async () => {
+  await ElMessageBox.confirm(`确定清除全部本地数据吗？`, '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  })
   configs.value = []
 }
 // 删除某一条
@@ -155,16 +169,6 @@ const domainMap = computed(() => {
   return map
 })
 const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-// const showDays = (config, type) => {
-//   if (type === 'clear') {
-//     config.days = []
-//   } else if (type === 'showDaysSelector') {
-//     config.showDaysSelector = true
-//   } else if (type === 'hideDaysSelector') {
-//     config.showDaysSelector = false
-//   }
-//   changShowDaysButton(config);
-// }
 const changSortConfigs = () => {
   if (orderSortConfigs.value) {
     configs.value.sort((a, b) => b.order - a.order)
@@ -189,7 +193,9 @@ function changShowDaysButton(config) {
     }
   }
 }
-
+const debouncedSort = debounce(() => {
+  changSortConfigs();
+}, 300); // 延迟 300ms 执行
 // 监听每一项的 domainName 变化 → 自动填充 sundaySelectedValue
 watchEffect(
     () => configs.value,
@@ -222,10 +228,7 @@ watchEffect(
         changShowDaysButton(config);
       })
 
-      if (orderSortConfigs.value) {
-        newConfigs.sort((a, b) => b.order - a.order)
-      }
-
+      debouncedSort()
     },
     {deep: true}
 )
@@ -413,14 +416,16 @@ const updateCurrentConfig = (config) => {
       <div class="fixed-container">
         <h2 class="title">自动秘境计划配置列表</h2>
         <div class="config-header">
-          <input type="text" v-model="uid" placeholder="设置 UID" class="uid-input"/>
+          <div class="sort-control-card">
+            <input type="text" v-model="uid" placeholder="设置 UID" class="uid-input"/>
+          </div>
           <!-- 添加配置按钮 -->
           <button @click="addConfig" class="btn btn-add">➕ 添加一条配置</button>
           <div class="sort-control-card">
             <span class="sort-label">执行排序</span>
             <el-switch
                 v-model="orderSortConfigs"
-                @change="changSortConfigs"
+                @change="debouncedSort"
             />
           </div>
           <button @click="submitConfigToBackend" class="btn btn-submit">同步到云端</button>
@@ -493,11 +498,11 @@ const updateCurrentConfig = (config) => {
         <el-drawer
             v-model="showResultDrawer"
             direction="rtl"
-            size="45%"
+
             :with-header="true"
             :close-on-press-escape="true"
             :modal="true"
-            custom-class="result-drawer"
+            class="result-drawer"
         >
           <template #title>
             <span style="font-weight: bold; color: #409eff;">配置结果预览</span>
@@ -558,7 +563,7 @@ const updateCurrentConfig = (config) => {
 
             <div class="form-group">
               <label>执行顺序：</label>
-              <input class="limited-input" v-model.number="config.order" type="number" min="1" max="99999999"
+              <input class="limited-input" @change="debouncedSort" v-model.number="config.order" type="number" min="1" max="99999999"
                      placeholder="建议 1~10"/>
               <span style="color: red;">数值高的优先执行</span>
             </div>
@@ -686,16 +691,10 @@ const updateCurrentConfig = (config) => {
           <i class="el-icon-document"></i>
           <span>查看/复制配置结果</span>
         </div>
-        <!--        <div class="result-all">
-                  <label class="result-key">Json配置:</label>
-                  <pre class="result">{{ getFinalConfigsMapShow() || '暂无返回数据' }}</pre>
-                  <button @click="copyToClipboard(getFinalConfigsMapShow())" class="copy-btn">📋 复制</button>
-                </div>
-                <div class="result-all">
-                  <label class="result-key">语法key:</label>
-                  <pre class="result">{{ getFinalConfigsToKey() || '暂无返回数据' }}</pre>
-                  <button @click="copyToClipboard(getFinalConfigsToKey())" class="copy-btn">📋 复制</button>
-                </div>-->
+        <div class="fixed-search" @click="showResultDrawer = true" title="查看/复制配置结果">
+          <i class="el-icon-document"></i>
+          <span>sous</span>
+        </div>
       </div>
     </div>
     <!-- 在 template 最后添加 -->
@@ -737,21 +736,20 @@ const updateCurrentConfig = (config) => {
 
 /* 固定容器样式 */
 .fixed-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 15%;
-  /* background: rgba(255, 255, 255, 0.9); !* 半透明白色背景 *!*/
-  backdrop-filter: blur(10px); /* 毛玻璃效果 */
+  position: fixed; /* 固定定位 */
+  top: 0; /* 距离顶部为 0 */
+  left: 0; /* 距离左侧为 0 */
+  width: 100%; /* 占满整个视口宽度 */
   z-index: 1000; /* 确保在最上层 */
-  padding: 10px 20px;
+  backdrop-filter: blur(10px); /* 毛玻璃效果 */
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* 添加阴影 */
+  border-radius: 12px; /* 添加圆角 */
+  padding: 10px 20px; /* 内边距 */
 }
 
 /* 内容区域补偿高度 */
 .content-area {
-  margin-top: 15%; /* 根据 .fixed-container 的实际高度调整 */
+  margin-top: 300px; /* 根据 .fixed-container 的实际高度调整 */
   width: 100%;
 }
 
@@ -784,9 +782,8 @@ h2 {
 
 /* UID 输入框 */
 .uid-input {
-  max-width: 40%;
+  max-width: 100px;
   padding: 10px;
-  margin-bottom: 20px;
   border: 1px solid #ccc;
   border-radius: 8px;
   font-size: 1rem;
@@ -794,7 +791,6 @@ h2 {
 }
 
 .uid-input:focus {
-  max-width: 40%;
   border-color: #409eff;
   outline: none;
   box-shadow: 0 0 5px rgba(64, 158, 255, 0.5);
@@ -833,7 +829,7 @@ h2 {
 
 /* 配置项卡片 */
 .config-item {
-  max-width: 40%;
+  max-width: 300px;
   background: linear-gradient(135deg, #b6b2b6, #91dcd6);
   border: 1px solid #b9bcc6;
   border-radius: 12px;
@@ -996,15 +992,17 @@ h2 {
 .copy-btn:hover {
   background-color: #85ce61;
 }
+
 .sort-control-card {
+  max-height: 50px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 10px;
 
   background-color: #85ce61; /* 白色背景 */
   color: #000000; /* 黑色文字 */
-  padding: 10px 20px; /* 内边距 */
+  padding: 4px 8px; /* 内边距 */
   border-radius: 8px; /* 圆角 */
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); /* 添加阴影，模拟卡片效果 */
   border: none; /* 去除边框 */
@@ -1035,6 +1033,7 @@ h2 {
   border-color: #60a5fa !important;
   background-color: #3b82f6 !important;
 }
+
 .btn.btn-add {
   background-color: #85ce61; /* 白色背景 */
   color: #000000; /* 黑色文字 */
@@ -1168,12 +1167,12 @@ h2 {
 /* 右侧固定触发按钮 */
 .fixed-trigger {
   position: fixed;
-  right: 20px;
-  top: 50%;
+  right: 10px;
+  top: 80%;
   transform: translateY(-50%);
   z-index: 999;
-  width: 4%;
-  height: 40%;
+  width: 60px;
+  height: 200px;
   background: rgba(64, 158, 255, 0.9);
   color: white;
   border-radius: 12px 0 0 12px;
@@ -1188,7 +1187,6 @@ h2 {
 }
 
 .fixed-trigger:hover {
-  right: 18px;
   background: rgba(64, 158, 255, 1);
   box-shadow: -4px 0 16px rgba(0, 0, 0, 0.2);
 }
@@ -1207,6 +1205,7 @@ h2 {
 .result-drawer {
   --el-drawer-bg-color: rgba(206, 33, 33, 0.96);
   --el-drawer-border-color: #1b3e8f;
+  min-width: 80% !important;
   background: #fadbd8;
   backdrop-filter: blur(6px);
 }
@@ -1267,6 +1266,7 @@ h2 {
   /*  --el-dialog-bg-color         : rgba(206, 210, 225, 0.88) !important;*/
   /*background                   : linear-gradient(135deg, #5b818c, #38e0c2);*/
   /*  --el-overlay-bg-color        : rgba(224, 208, 208, 0.65) !important;*/
+  max-width: 500px;
   backdrop-filter: blur(12px) saturate(1.6);
   border: 1px solid rgba(100, 160, 255, 0.25);
   border-radius: 16px;
