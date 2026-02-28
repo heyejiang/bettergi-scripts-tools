@@ -2,6 +2,24 @@
 
 
   <div class="home">
+    <div v-if="RestartClick" class="restart-overlay" @keydown.esc.prevent tabindex="0">
+      <div class="restart-modal">
+        <div class="warning-header">
+          <span class="warning-icon">!</span>
+          <h3>系统正在重启</h3>
+        </div>
+
+        <div class="spinner"></div>
+
+        <div class="loading-text">正在执行重启</div>
+
+        <p class="hint">
+          请勿关闭界面或刷新<br>
+          预计需要 1–5 分钟，完成后将自动跳转
+        </p>
+      </div>
+    </div>
+
     <div class="welcome-card">
       <img class="logo" src="@assets/logo.svg" alt="Logo"/>
       <h2 class="title">{{ currentRoute.meta.title || 'HOME' }}</h2>
@@ -51,25 +69,6 @@
           </div>
         </div>
       </div>
-
-
-      <div v-if="RestartClick" class="restart-overlay" @keydown.esc.prevent tabindex="0">
-        <div class="restart-modal">
-          <div class="warning-header">
-            <span class="warning-icon">!</span>
-            <h3>系统正在重启</h3>
-          </div>
-
-          <div class="spinner"></div>
-
-          <div class="loading-text">正在执行重启</div>
-
-          <p class="hint">
-            请勿关闭界面或刷新<br>
-            预计需要 10–60 秒，完成後將自動跳轉
-          </p>
-        </div>
-      </div>
     </div>
     <router-view/>
   </div>
@@ -79,8 +78,8 @@
 import {ref, onMounted} from "vue";
 import router from "@router/router";
 import {iconAsMapDefault} from "@utils/defaultdata.js";
-import {restartService} from "@api/sys/sys.js";
 import {ElMessage, ElMessageBox} from "element-plus";
+import {restart} from "@api/web/web.js";
 
 let iconAsMap = iconAsMapDefault()
 
@@ -93,6 +92,7 @@ const list = [
   // {isRote: true, name: '路由管理面板', value: '路由管理面板'},
   {name: '退出登录', value: 'Logout'},
   {name: '重启', value: 'Restart'},
+  {name: '设置', value: 'Settings'},
 ]
 let index = 1
 let initJson = {
@@ -130,15 +130,15 @@ const lightColors = [
   'rgba(255,141,195,0.54)',
   '#ced4da'
 ];
-
-onMounted(() => {
+onMounted(async () => {
+  /*================*/
   let index = 1
   let routerJson = {
     title: '扩展功能列表',
     children: []
   }
 
-  router.getRoutes().filter(route => route.name !== 'home' && route.name !== 'login' && route?.meta?.isRoot).forEach(route => {
+  router.getRoutes().filter(route => (!route?.meta?.excludeInMenu) && route.name !== 'home' && route.name !== 'login' && route?.meta?.isRoot).forEach(route => {
     routerJson.children.push({
       id: index,
       position: index % 2 === 1 ? "left" : "right",
@@ -241,6 +241,11 @@ const getItemsByPosition = (featureGroup, position) => {
 // 点击跳转
 const togo = async (item) => {
   if (item?.isRote) {
+    await ElMessageBox.confirm(`确定要访问${item.name}吗？`, '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
     try {
       await router.push(item.value);
     } catch (error) {
@@ -248,8 +253,20 @@ const togo = async (item) => {
     }
   } else if (item?.isSwagger) {
     const basePath = import.meta.env.VITE_BASE_API_PATH || '/bgi/';
+
+    await ElMessageBox.confirm(`确定要访问文档吗？`, '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+
     window.open(`${basePath}${item.value}`, '_blank');
   } else if (item?.isLink) {
+    await ElMessageBox.confirm(`确定要访问外链接:${item.value}吗？`, '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
     window.open(item.value, '_blank');
   }
 };
@@ -265,40 +282,18 @@ const toClick = async (item) => {
     const token_name = import.meta.env.VITE_BASE_TOKEN_NAME || 'bgi_tools_token'
     localStorage.removeItem(token_name)
     router.push('/login')
-  } else if (value === 'Restart') {
-    // 防止重复点击
-    if (RestartClick.value) {
-      ElMessage.warning('正在重启中，请勿重复点击');
-      return;
-    }
-// 可選：二次確認（看需求加不加）
-    await ElMessageBox.confirm('确定要重启系统吗？', '提示', {
+  }else if(value === 'Settings'){
+    await ElMessageBox.confirm('确定要前往设置吗？', '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
     })
-    // 标记为正在重启
-    RestartClick.value = true;
-
-    try {
-      // 发送重启指令
-      const result = await restartService();
-
-      if (result.code === 200) {
-        ElMessage.info('重启指令发送成功');
-      } else {
-        ElMessage.error('重启指令发送失败');
-      }
-    } catch (error) {
-      // 捕获异常并提示用户
-      console.error('重启请求失败:', error);
-      ElMessage.error('重启请求异常，请稍后再试');
-    } finally {
-      // 无论成功与否，都恢复状态
-      RestartClick.value = false;
-    }
+    router.push('/settings')
+  } else if (value === 'Restart') {
+    await restart(RestartClick)
   }
 }
+
 </script>
 <style scoped>
 
@@ -341,8 +336,8 @@ const toClick = async (item) => {
 
 /* Logo 圆角 */
 .logo {
- /* width: 50px;
-  height: 50px;*/
+  /* width: 50px;
+   height: 50px;*/
   object-fit: cover;
   border-radius: 50%;
   margin-bottom: 25px;
@@ -351,9 +346,9 @@ const toClick = async (item) => {
 
 /* 主标题美化 */
 .title {
- /* font-size: 36px;*/
+  /* font-size: 36px;*/
   /*font-weight: 800;*/
-/*  margin-bottom: 5px;*/
+  /*  margin-bottom: 5px;*/
   color: transparent;
   background: linear-gradient(90deg, #6a89cc, #3498db);
   -webkit-background-clip: text;
@@ -369,7 +364,7 @@ const toClick = async (item) => {
 
 /* 副标题美化 */
 .subtitle {
- /* font-size: 20px;*/
+  /* font-size: 20px;*/
   color: #7f8c8d;
   /*margin-bottom: 40px;*/
   opacity: 0;
@@ -478,6 +473,29 @@ const toClick = async (item) => {
   color: #e74c3c;
 }
 
+.restart-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none; /* 防止選取文字 */
+  -webkit-user-select: none;
+}
+
+.restart-modal {
+  background: white;
+  padding: 2.5rem;
+  border-radius: 12px;
+  text-align: center;
+  min-width: 320px;
+  max-width: 420px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  pointer-events: auto;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .feature-container {
@@ -506,39 +524,75 @@ const toClick = async (item) => {
   .subtitle {
     font-size: 20px;
   }
+
   .restart-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(8px);           /* 強毛玻璃，增加沉浸感 */
+    background: rgba(0, 0, 0, 0.75);
     z-index: 9999;
     display: flex;
     align-items: center;
     justify-content: center;
-    user-select: none;
-    pointer-events: all;                  /* 完全攔截互動 */
+    user-select: none; /* 防止選取文字 */
+    -webkit-user-select: none;
   }
 
   .restart-modal {
-    background: rgba(20, 20, 28, 0.95);   /* 深黑半透，與紅色對比強 */
-    border: 2px solid #ff4d4f;            /* 紅色邊框警示 */
-    border-radius: 16px;
-    padding: 2.5rem 4rem 3.5rem;
-    min-width: 420px;
-    max-width: 520px;
+    background: white;
+    padding: 2.5rem;
+    border-radius: 12px;
     text-align: center;
-    box-shadow:
-        0 30px 80px rgba(255, 77, 79, 0.25),   /* 紅色光暈陰影 */
-        0 0 0 1px rgba(255, 77, 79, 0.15) inset,
-        inset 0 0 40px rgba(0, 0, 0, 0.6);
-    animation: modalPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    min-width: 320px;
+    max-width: 420px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
     pointer-events: auto;
   }
 
+  /*
+    !* 禁止點擊 overlay 本身關閉（點 modal 內部還是可以操作） *!
+    .restart-overlay {
+      pointer-events: auto;
+    }
+
+    .restart-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px); !* 強毛玻璃，增加沉浸感 *!
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      pointer-events: all; !* 完全攔截互動 *!
+    }
+
+    .restart-modal {
+      background: rgba(20, 20, 28, 0.95); !* 深黑半透，與紅色對比強 *!
+      border: 2px solid #ff4d4f; !* 紅色邊框警示 *!
+      border-radius: 16px;
+      padding: 2.5rem 4rem 3.5rem;
+      min-width: 420px;
+      max-width: 520px;
+      text-align: center;
+      box-shadow: 0 30px 80px rgba(255, 77, 79, 0.25), !* 紅色光暈陰影 *! 0 0 0 1px rgba(255, 77, 79, 0.15) inset,
+      inset 0 0 40px rgba(0, 0, 0, 0.6);
+      animation: modalPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      pointer-events: auto;
+    }*/
   @keyframes modalPop {
-    0%   { opacity: 0; transform: scale(0.7) translateY(40px); }
-    60%  { opacity: 1; transform: scale(1.05) translateY(-10px); }
-    100% { opacity: 1; transform: scale(1) translateY(0); }
+    0% {
+      opacity: 0;
+      transform: scale(0.7) translateY(40px);
+    }
+    60% {
+      opacity: 1;
+      transform: scale(1.05) translateY(-10px);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
   }
 
   .warning-header {
@@ -563,8 +617,12 @@ const toClick = async (item) => {
   }
 
   @keyframes pulse {
-    0%, 100% { box-shadow: 0 0 20px rgba(255, 77, 79, 0.4); }
-    50%      { box-shadow: 0 0 40px rgba(255, 77, 79, 0.8); }
+    0%, 100% {
+      box-shadow: 0 0 20px rgba(255, 77, 79, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 40px rgba(255, 77, 79, 0.8);
+    }
   }
 
   .warning-header h3 {
@@ -586,7 +644,9 @@ const toClick = async (item) => {
   }
 
   @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   .loading-text {

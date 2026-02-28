@@ -271,15 +271,15 @@ Content-Type: application/json
 UID查询(bgi_tools拉取配置api)
 ```http request
 ###
-GET http://localhost:8081/bgi/auto/plan/domain/json?
+GET http://localhost:8081/bgi/auto/plan/json?
     uid={{$random.alphanumeric(8)}}
 
 ###
-GET http://localhost:8081/bgi/api/auto/plan/domain/json?
+GET http://localhost:8081/bgi/api/auto/plan/json?
     uid={{$random.alphanumeric(8)}}
 
 ###
-GET http://localhost:8081/bgi/jwt/auto/plan/domain/json?
+GET http://localhost:8081/bgi/jwt/auto/plan/json?
     uid={{$random.alphanumeric(8)}}
 
 ```
@@ -324,7 +324,33 @@ Content-Type: application/json
   "json": ""
 }
 ```
+存储全部国家信息(bgi_tools推送全部国家配置api)
+```http request
+###
+POST http://localhost:8081/bgi/auto/plan/country/json/all
+Content-Type: application/json
 
+{
+  "json": ""
+}
+
+
+###
+POST http://localhost:8081/bgi/api/auto/plan/country/json/all
+Content-Type: application/json
+
+{
+  "json": ""
+}
+
+###
+POST http://localhost:8081/bgi/jwt/auto/plan/country/json/all
+Content-Type: application/json
+
+{
+  "json": ""
+}
+```
 # 演示
 ### bgi 第三方OCR识别实例
 ```js

@@ -39,6 +39,7 @@ import {ref} from 'vue'
 import {useRouter} from 'vue-router'
 import {ElMessage} from 'element-plus'
 import {login} from '@api/auth/login'
+import {setLocalToken, toHomePage} from "@api/web/web.js";
 
 const router = useRouter()
 const form = ref({
@@ -56,12 +57,9 @@ const handleLogin = async () => {
     if (!token){
       throw new Error('登录异常')
     }
-    const token_name= import.meta.env.VITE_BASE_TOKEN_NAME|| 'bgi_tools_token'
-    console.log("login=>name:",token_name)
-    console.log("login=>token:",token)
-    localStorage.setItem(token_name, token)
+    await setLocalToken(token)
     ElMessage.success('登录成功')
-    router.push('/')
+    await toHomePage(false)
   } catch (err) {
     ElMessage.error(err.response?.data || '登录失败')
   }finally {

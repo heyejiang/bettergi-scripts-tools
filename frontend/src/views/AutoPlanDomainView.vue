@@ -52,11 +52,16 @@
 <script setup>
 import {ref, computed, onMounted} from 'vue';
 import {domainsDefault} from "@utils/defaultdata.js";
-import {getBaseJsonAll} from "@api/domain/autoPlan.js";
+import {getBaseJsonAll} from "@api/auto_plan/autoPlan.js";
 import {ElMessage} from "element-plus";
 import router from "@router/router.js";
+import {toHomePage} from "@api/web/web.js";
 
-const goToHome = () => router.push('/');
+const goToHome = async () => {
+  // router.push('/'); // 假设主页路径是 '/'
+  await toHomePage()
+};
+
 
 const domainData = ref(domainsDefault);
 const selectedTypeItems = ref([]);

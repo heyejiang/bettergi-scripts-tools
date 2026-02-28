@@ -1,11 +1,13 @@
 // src/router.js
 import {createRouter, createWebHistory} from 'vue-router'
+import {getLocalToken} from "@api/web/web.js";
 
 const routes = [
     {
         path: '/',
         name: 'home',
         meta: {
+            excludeInMenu: true,
             isRoot: true,
             title: '首页',
             desc: '首页',
@@ -16,10 +18,24 @@ const routes = [
         children: []
     },
     {
+        path: '/settings',
+        name: 'settings',
+        component: () => import('@main/views/SettingsView'),
+        meta: {
+            excludeInMenu: true,
+            isRoot: true,
+            title: '设置',
+            desc: '设置',
+            asSubParentTitle: '设置',
+            icon: 'icon-home'
+        },
+    },
+    {
         path: '/login',
         name: 'login',
         component: () => import('@main/views/Login'),
         meta: {
+            excludeInMenu: true,
             isRoot: true,
             title: '登录',
             desc: '登录',
@@ -54,14 +70,14 @@ const routes = [
     }
     ,
     {
-        path: '/AutoPlanDomainConfig',
-        name: 'AutoPlanDomainConfig',
-        component: () => import('@main/views/AutoPlanDomainConfigView'),
+        path: '/AutoPlanConfig',
+        name: 'AutoPlanConfig',
+        component: () => import('@views/AutoPlanConfigView.vue'),
         meta: {
             isRoot: true,
-            title: '自动秘境计划配置',
-            desc: '自动秘境计划配置',
-            asSubParentTitle: '自动秘境计划配置',
+            title: '自动体力计划配置',
+            desc: '自动体力计划配置',
+            asSubParentTitle: '自动体力计划配置',
             icon: 'Domain'
         },
     }
@@ -81,30 +97,29 @@ const routes = [
     // 其他路由...
 ]
 const VITE_BASE_PATH = (import.meta.env.VITE_BASE_PATH || '/bgi/ui/');
-const token_name= import.meta.env.VITE_BASE_TOKEN_NAME|| 'bgi_tools_token'
 // console.log("VITE_BASE_PATH:", VITE_BASE_PATH);
 const router = createRouter({
     history: createWebHistory(VITE_BASE_PATH),
     // history: createWebHistory("/bgi"),
     routes: routes,
 })
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
     // console.log('Navigating to:', to.path);
     //开发模式下，允许所有路由
-    if (import.meta.env.VITE_SERVER_PORT){
-       return  next()
+    if (import.meta.env.VITE_SERVER_PORT) {
+        return next()
     }
-    let item = localStorage.getItem(token_name);
+    let item = await getLocalToken()
     if (to.path === '/login') {
-        if (item){
+        if (item) {
             next('/')
-        }else {
+        } else {
             next()
         }
-    }else {
-        if (item){
+    } else {
+        if (item) {
             next()
-        }else {
+        } else {
             next('/login')
         }
 
