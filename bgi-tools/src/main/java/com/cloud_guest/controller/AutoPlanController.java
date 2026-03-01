@@ -103,7 +103,19 @@ public class AutoPlanController {
         List<AutoPlanVo> autoPlanVos = autoPlanService.find(uid);
         return ok(autoPlanVos);
     }
+    @SysLog
+    @Operation(summary = "查询全部UID")
+    @GetMapping("uid/all")
+    public Result<List<String>> uidALL() {
+        List<String> uidList = autoPlanService.findUidAll();
+        uidList = uidList.stream().map(uid -> uid.substring(uid.lastIndexOf(":") + 1)).collect(Collectors.toList());
+        return ok(uidList);
+    }
 
+    public static void main(String[] args) {
+        String s = "a:ssss";
+        System.out.println(s.substring(s.lastIndexOf(":") + 1));
+    }
     @SysLog
     @Token
     @Operation(summary = "[需要登录/授权token]批量删除UID映射JSON")

@@ -16,9 +16,15 @@ public interface AutoPlanService {
 
     boolean save(String id, String json);
 
+    List<String> findALLUid();
+
     List<AutoPlanVo> find(String id);
 
     boolean saveDomainAll(String json);
+
+    List<String> findUidAll();
+
+    boolean saveUid(String uid);
 
     List<Map<String, Object>> findDomainAll();
 
