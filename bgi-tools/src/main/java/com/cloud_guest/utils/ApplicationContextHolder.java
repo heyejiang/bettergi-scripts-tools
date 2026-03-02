@@ -39,6 +39,11 @@ public class ApplicationContextHolder {
     private static ConfigurableApplicationContext context;
     private static String[] args;
     private static String restartKey = KeyConstants.all_application_key + ":" + KeyConstants.restart_key;
+    private static long reportedOnlineTimeout = 1 * 60 * 1000;// 1分钟
+
+    public static long getReportedOnlineTimeout() {
+        return reportedOnlineTimeout;
+    }
 
     public static void setContext(ConfigurableApplicationContext ctx, String[] startupArgs) {
         context = ctx;
@@ -117,6 +122,7 @@ public class ApplicationContextHolder {
 
     /**
      * 上报应用在线信息
+     *
      * @param applicationInfo
      */
     public static void reportedOnline(ApplicationInfo applicationInfo) {
@@ -207,8 +213,7 @@ public class ApplicationContextHolder {
     }
 
     /**
-     * 清除轮廓键的方法
-     * 该方法用于清除所有与轮廓相关的键值，可能是为了重置状态或释放资源
+     * 清除离线键
      */
     public static void clearOutlineKeys() {
         CacheService bean = SpringUtil.getBean(CacheService.class);
@@ -250,8 +255,7 @@ public class ApplicationContextHolder {
 
 
     /**
-     * 清理系统中异常下线的应用实例的重启键
-     * 该方法会检查并清理那些已经不在当前应用实例列表中的重启键
+     * 清理重启键
      */
     public static void clearRestartKeys() {
         try {

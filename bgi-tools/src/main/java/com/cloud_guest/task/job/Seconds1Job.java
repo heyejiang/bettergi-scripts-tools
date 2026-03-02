@@ -22,12 +22,12 @@ public class Seconds1Job  extends DistributedJob {
     @Override
     protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
         ThreadPoolTaskExecutor executor = SpringUtil.getBean(ThreadPoolTaskExecutor.class);
-        //Seconds1Job.super.executeInternal(context);
-        //log.debug("~~~~~~~~~~~~~~~~~~~~~~~~~{}~~~~~~~~~~~~~~~~~~~~~~~~~",this.getClass().getSimpleName());
-        ////CustThreadPoolTaskExecutor runAsync = new CustThreadPoolTaskExecutor().setCustThreadNamePrefix("runAsync");
+        long reportedOnlineTimeout = ApplicationContextHolder.getReportedOnlineTimeout();
+
         CompletableFuture.runAsync(()->{
-            //log.debug("===> {} <===","runAsync");
-            //删除重启key 防止异常下线未清理
+            // 按顺序执行，确保数据一致性
+            ApplicationContextHolder.checkOnline(reportedOnlineTimeout);
+            ApplicationContextHolder.clearOutlineKeys();
             ApplicationContextHolder.clearRestartKeys();
         }, executor);
     }
