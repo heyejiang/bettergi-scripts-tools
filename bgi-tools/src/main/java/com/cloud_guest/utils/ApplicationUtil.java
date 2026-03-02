@@ -87,12 +87,14 @@ public class ApplicationUtil implements AbsBean {
                 datacenterIds.add(Long.valueOf(works));
             }
         }
+       List<Long> sumIds=new ArrayList<Long>();
         //获取上报在线信息 存在延迟(会影响销毁)
-        ApplicationContextHolder.checkAndGetOnline(null).stream().map(ApplicationInfo::getDatacenterId).forEach(datacenterIds::add);
+        ApplicationContextHolder.checkAndGetOnline(null).stream().map(ApplicationInfo::getDatacenterId).forEach(sumIds::add);
         Long datacenterId = getDatacenterId();
         datacenterId++;
-        if (datacenterIds.size() > 0) {
-            datacenterId += datacenterIds.stream().filter(ObjectUtils::isNotEmpty).mapToLong(Long::longValue).max().getAsLong();
+        sumIds.addAll(datacenterIds);
+        if (sumIds.size() > 0) {
+            datacenterId += sumIds.stream().filter(ObjectUtils::isNotEmpty).mapToLong(Long::longValue).max().getAsLong();
         }
         applicationInfo.setDatacenterId(datacenterId);
         datacenterIds.add(datacenterId);

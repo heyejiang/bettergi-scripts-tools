@@ -359,6 +359,7 @@ public class ApplicationContextHolder {
             if (CollUtil.isNotEmpty(outlineList)) {
                 log.warn("发现 {} 个离线的应用实例需要清理", outlineList.size());
                 for (ApplicationInfo applicationInfo : outlineList) {
+                    log.warn("清理离线应用实例：{}", applicationInfo);
                     ApplicationUtil.destroyApplicationIdAndDatacenterId(applicationInfo.getApplicationId(), applicationInfo.getDatacenterId());
                     saveReportedOnline(KeyConstants.online_application_key,applicationInfo, false);
                 }
