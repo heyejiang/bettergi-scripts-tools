@@ -29,10 +29,11 @@ import java.util.stream.Collectors;
 @Slf4j
 @Component
 public class ApplicationUtil implements AbsBean {
-    public static ApplicationInfo applicationInfo = new ApplicationInfo(null, 0l, System.currentTimeMillis());
+    private static ApplicationInfo applicationInfo = new ApplicationInfo(null, 0l, System.currentTimeMillis());
     //public static List<String> nodeApplicationIds = new ArrayList<>();
     private static final String application_key = KeyConstants.all_application_key;
     private static final String application_datacenter_key = KeyConstants.all_application_datacenter_key;
+    private static boolean initEnd = false;
     @Resource
     private CacheService cacheService;
 
@@ -47,12 +48,20 @@ public class ApplicationUtil implements AbsBean {
 
         initApplicationId();
         initDatacenterId();
+        initEnd = true;
     }
 
     public void initApplicationId() {
         List<String> applicationIds = getAllApplicationIds();
         applicationIds.add(applicationInfo.getApplicationId());
         cacheService.save(application_key, JSONUtil.toJsonStr(applicationIds));
+    }
+
+    public static ApplicationInfo getApplicationInfo() {
+        if (!initEnd){
+            return null;
+        }
+        return applicationInfo;
     }
 
     /**
@@ -79,7 +88,7 @@ public class ApplicationUtil implements AbsBean {
             datacenterId += datacenterIds.stream().filter(ObjectUtils::isNotEmpty).mapToLong(Long::longValue).max().getAsLong();
         }
         applicationInfo.setDatacenterId(datacenterId);
-        datacenterIds.add(applicationInfo.datacenterId);
+        datacenterIds.add(datacenterId);
         cacheService.save(application_datacenter_key, JSONUtil.toJsonStr(datacenterIds));
     }
 
