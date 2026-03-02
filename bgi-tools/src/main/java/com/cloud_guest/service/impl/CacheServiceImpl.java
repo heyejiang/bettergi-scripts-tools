@@ -159,6 +159,28 @@ public class CacheServiceImpl implements CacheService {
     }
 
     @Override
+    public boolean removeByKey(String key) {
+        LockWrapper lock = LockUtil.getLock(key);
+        boolean tryLock = lock.tryLock();
+        if (!tryLock) {
+            throw new GlobalException("存在其他操作，请稍后再试!");
+        }
+        try {
+            if (ModeUtil.isLocal()) {
+                LocalCacheUtils.remove(key);
+            } else if (ModeUtil.isRedis()) {
+                RedisService bean = SpringUtil.getBean(RedisService.class);
+                bean.del(key);
+            }
+        } finally {
+            if (tryLock) {
+                lock.unlock();
+            }
+        }
+        return true;
+    }
+
+    @Override
     public boolean saveId(String key, String id) {
         Set<String> hashSet = new LinkedHashSet<>();
       /*  String ids = StrUtil.EMPTY;

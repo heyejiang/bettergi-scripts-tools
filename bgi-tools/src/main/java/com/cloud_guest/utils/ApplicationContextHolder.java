@@ -123,6 +123,8 @@ public static void clearRestartKeys() {
                     log.error("清理重启键失败: {}", key, e);
                 }
             }
+            // 清理重启键
+            bean.removeByKey(restartKey);
         }
     } catch (Exception e) {
         log.error("清理重启键过程出现异常", e);
