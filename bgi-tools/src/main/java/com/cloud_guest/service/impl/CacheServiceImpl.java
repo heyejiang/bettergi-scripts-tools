@@ -147,8 +147,9 @@ public class CacheServiceImpl implements CacheService {
             if (ModeUtil.isLocal()) {
                 LocalCacheUtils.put(key, JSONUtil.toJsonStr(hashSet));
             } else if (ModeUtil.isRedis()) {
+                String keyRedis = KeyConstants.redis_file_json_key + key;
                 RedisService bean = SpringUtil.getBean(RedisService.class);
-                bean.save(key, JSONUtil.toJsonStr(hashSet.stream().collect(Collectors.toList())));
+                bean.save(keyRedis, JSONUtil.toJsonStr(hashSet.stream().collect(Collectors.toList())));
             }
         } finally {
             if (tryLock) {
@@ -169,8 +170,9 @@ public class CacheServiceImpl implements CacheService {
             if (ModeUtil.isLocal()) {
                 LocalCacheUtils.remove(key);
             } else if (ModeUtil.isRedis()) {
+                String keyRedis = KeyConstants.redis_file_json_key + key;
                 RedisService bean = SpringUtil.getBean(RedisService.class);
-                bean.del(key);
+                bean.del(keyRedis);
             }
         } finally {
             if (tryLock) {
@@ -212,8 +214,9 @@ public class CacheServiceImpl implements CacheService {
             if (ModeUtil.isLocal()) {
                 LocalCacheUtils.put(key, JSONUtil.toJsonStr(hashSet));
             } else if (ModeUtil.isRedis()) {
+                String keyRedis = KeyConstants.redis_file_json_key + key;
                 RedisService bean = SpringUtil.getBean(RedisService.class);
-                bean.save(key, JSONUtil.toJsonStr(hashSet.stream().collect(Collectors.toList())));
+                bean.save(keyRedis, JSONUtil.toJsonStr(hashSet.stream().collect(Collectors.toList())));
             }
         } finally {
             if (tryLock) {
@@ -279,8 +282,9 @@ public class CacheServiceImpl implements CacheService {
         if (ModeUtil.isLocal()) {
             ids = (String) LocalCacheUtils.get(key);
         } else {
+            String keyRedis = KeyConstants.redis_file_json_key + key;
             RedisService bean = SpringUtil.getBean(RedisService.class);
-            ids = (String) bean.get(key);
+            ids = (String) bean.get(keyRedis);
         }
         if (StrUtil.isNotBlank(ids)) {
             if (JSONUtil.isTypeJSONArray(ids)) {
