@@ -204,9 +204,8 @@ public class ApplicationContextHolder {
      * @return
      */
     public static List<ApplicationInfo> checkAndGetOnline(Long reportedOnlineTimeout) {
-        // 如果传入的超时时间为空，则设置默认超时时间为5分钟
         if (reportedOnlineTimeout == null) {
-            reportedOnlineTimeout = 1000 * 60 * 5l;
+            reportedOnlineTimeout = getReportedOnlineTimeout();
         }
         // 从Spring容器中获取CacheService的Bean实例
         CacheService bean = SpringUtil.getBean(CacheService.class);
