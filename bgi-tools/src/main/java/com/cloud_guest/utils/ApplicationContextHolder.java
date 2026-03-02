@@ -120,36 +120,6 @@ public class ApplicationContextHolder {
             reportedOnlineTimeout = 1000 * 60 * 5l;
         }
         CacheService bean = SpringUtil.getBean(CacheService.class);
-        String valueByKey = bean.findValueByKey(KeyConstants.online_application_key);
-        List<String> checkOnlineKeys = new ArrayList<>();  // 修复：使用可变列表
-
-        // 如果获取到的值不为空
-        if (StrUtil.isNotBlank(valueByKey)) {
-            // 判断值是否为JSONArray类型
-            if (JSONUtil.isTypeJSONArray(valueByKey)) {
-                // 如果是JSONArray类型，将所有元素添加到列表中
-                checkOnlineKeys.addAll(JSONUtil.toList(valueByKey, String.class));
-            } else {
-                // 如果不是JSONArray类型，直接将值添加到列表中
-                checkOnlineKeys.add(valueByKey);
-            }
-        }
-
-        List<ApplicationInfo> checkOnlineList = checkOnlineKeys.stream().map(jsonStr -> JSONUtil.toBean(jsonStr, ApplicationInfo.class))
-                // 过滤掉当前应用实例 绝对在线
-                .filter(obj -> !ObjectUtils.equals(obj.getApplicationId(), ApplicationUtil.getApplicationId()))
-                .collect(Collectors.toList());
-        // 遍历并清理每个异常重启键
-        long currentTimeMillis = System.currentTimeMillis();
-        List<ApplicationInfo> outList = new ArrayList<>();
-        for (ApplicationInfo applicationInfo : checkOnlineList) {
-            Long timeStamp = applicationInfo.getTimeStamp();
-            if (currentTimeMillis - timeStamp > reportedOnlineTimeout) {
-                //超出上线报备时间间隔未报备上线
-                //标记需要处理
-                outList.add(applicationInfo);
-            }
-        }
         String outlineApplicationKey = KeyConstants.outline_application_key;
 
         LockWrapper lock = LockUtil.getLock(outlineApplicationKey);
@@ -157,7 +127,39 @@ public class ApplicationContextHolder {
         if (!tryLock) {
             throw new GlobalException("获取锁失败:" + outlineApplicationKey);
         }
+
         try {
+            String valueByKey = bean.findValueByKey(outlineApplicationKey);
+            List<String> checkOnlineKeys = new ArrayList<>();  // 修复：使用可变列表
+
+            // 如果获取到的值不为空
+            if (StrUtil.isNotBlank(valueByKey)) {
+                // 判断值是否为JSONArray类型
+                if (JSONUtil.isTypeJSONArray(valueByKey)) {
+                    // 如果是JSONArray类型，将所有元素添加到列表中
+                    checkOnlineKeys.addAll(JSONUtil.toList(valueByKey, String.class));
+                } else {
+                    // 如果不是JSONArray类型，直接将值添加到列表中
+                    checkOnlineKeys.add(valueByKey);
+                }
+            }
+
+            List<ApplicationInfo> checkOnlineList = checkOnlineKeys.stream().map(jsonStr -> JSONUtil.toBean(jsonStr, ApplicationInfo.class))
+                    // 过滤掉当前应用实例 绝对在线
+                    .filter(obj -> !ObjectUtils.equals(obj.getApplicationId(), ApplicationUtil.getApplicationId()))
+                    .collect(Collectors.toList());
+            // 遍历并清理每个异常重启键
+            long currentTimeMillis = System.currentTimeMillis();
+            List<ApplicationInfo> outList = new ArrayList<>();
+            for (ApplicationInfo applicationInfo : checkOnlineList) {
+                Long timeStamp = applicationInfo.getTimeStamp();
+                if (currentTimeMillis - timeStamp > reportedOnlineTimeout) {
+                    //超出上线报备时间间隔未报备上线
+                    //标记需要处理
+                    outList.add(applicationInfo);
+                }
+            }
+
             for (ApplicationInfo applicationInfo : outList) {
                 bean.saveId(outlineApplicationKey, JSONUtil.toJsonStr(applicationInfo));
             }
