@@ -8,6 +8,7 @@ import com.cloud_guest.BgiToolsApplication;
 import com.cloud_guest.constants.KeyConstants;
 import com.cloud_guest.domain.ApplicationInfo;
 import com.cloud_guest.exception.exceptions.GlobalException;
+import com.cloud_guest.redis.service.RedisService;
 import com.cloud_guest.service.CacheService;
 import com.cloud_guest.utils.object.ObjectUtils;
 import com.cloud_guest.wrappers.lock.LockWrapper;
@@ -19,10 +20,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -121,25 +119,71 @@ public class ApplicationContextHolder {
     }
 
     /**
+     * 保存上报的在线信息
+     *
+     * @param key             缓存键
+     * @param applicationInfo 应用信息对象
+     * @return 保存结果，成功返回true
+     */
+    private static boolean saveReportedOnline(String key, ApplicationInfo applicationInfo) {
+        // 获取CacheService实例
+        CacheService bean = SpringUtil.getBean(CacheService.class);
+
+        // 定义锁键并获取锁对象
+        String lockKey = key;
+        LockWrapper lock = LockUtil.getLock(lockKey);
+        // 尝试获取锁
+        boolean tryLock = lock.tryLock();
+        // 获取锁失败，抛出异常
+        if (!tryLock) {
+            throw new GlobalException("存在其他操作，请稍后再试!");
+        }
+    // 创建LinkedHashSet集合用于存储应用信息
+
+    // 根据键从缓存中获取值
+        Set<ApplicationInfo> hashSet = new LinkedHashSet<>();
+        String values = bean.findValueByKey(key);
+        if (StrUtil.isNotBlank(values)) {
+            if (JSONUtil.isTypeJSONArray(values)) {
+                // 是数组
+                JSONUtil.toList(values, ApplicationInfo.class).forEach(hashSet::add);
+            } else {
+                // 不是数组
+                hashSet.add(JSONUtil.toBean(values, ApplicationInfo.class));
+            }
+        }
+
+        String applicationId = applicationInfo.getApplicationId();
+        Long datacenterId = applicationInfo.getDatacenterId();
+        hashSet.removeIf(a -> ObjectUtils.equals(a.getApplicationId(), applicationId)
+                && ObjectUtils.equals(a.getDatacenterId(), datacenterId));
+        hashSet.add(applicationInfo);
+
+        try {
+            String jsonStr = JSONUtil.toJsonStr(hashSet.stream().collect(Collectors.toList()));
+            if (ModeUtil.isLocal()) {
+                LocalCacheUtils.put(key, jsonStr);
+            } else if (ModeUtil.isRedis()) {
+                String keyRedis = KeyConstants.redis_file_json_key + key;
+                RedisService redisService = SpringUtil.getBean(RedisService.class);
+                redisService.save(keyRedis, jsonStr);
+            }
+        } finally {
+            if (tryLock) {
+                lock.unlock();
+            }
+        }
+        return true;
+    }
+
+    /**
      * 上报应用在线信息
      *
      * @param applicationInfo
      */
     public static void reportedOnline(ApplicationInfo applicationInfo) {
         String onlineApplicationKey = KeyConstants.online_application_key;
-        LockWrapper lock = LockUtil.getLock(onlineApplicationKey);
-        boolean tryLock = lock.tryLock(1l, TimeUnit.MINUTES);
-        if (!tryLock) {
-            throw new GlobalException("获取锁失败:" + onlineApplicationKey);
-        }
-        try {
-            applicationInfo.setTimeStamp(System.currentTimeMillis());
-            SpringUtil.getBean(CacheService.class).saveId(onlineApplicationKey, JSONUtil.toJsonStr(applicationInfo));
-        } finally {
-            if (tryLock) {
-                lock.unlock();
-            }
-        }
+        saveReportedOnline(onlineApplicationKey, applicationInfo);
     }
 
     /**
@@ -183,25 +227,82 @@ public class ApplicationContextHolder {
                     checkOnlineKeys.add(valueByKey);
                 }
             }
-
+            String applicationId = ApplicationUtil.getApplicationId();
+            Long datacenterId = ApplicationUtil.getDatacenterId();
             // 将JSON字符串转换为ApplicationInfo对象列表，并过滤掉当前应用实例
             List<ApplicationInfo> checkOnlineList = checkOnlineKeys.stream().map(jsonStr -> JSONUtil.toBean(jsonStr, ApplicationInfo.class))
-                    // 过滤掉当前应用实例 绝对在线
-                    .filter(obj -> !ObjectUtils.equals(obj.getApplicationId(), ApplicationUtil.getApplicationId()))
                     .collect(Collectors.toList());
+            List<Long> datacenterIds = ApplicationUtil.getAllDatacenterIds().stream().filter(obj -> !ObjectUtils.equals(obj, datacenterId)).collect(Collectors.toList());
+            List<String> applicationIds = ApplicationUtil.getAllApplicationIds().stream().filter(obj -> !ObjectUtils.equals(obj, applicationId)).collect(Collectors.toList());
+            //datacenterIds 和 applicationIds 1对1
             // 遍历并清理每个异常重启键
             long currentTimeMillis = System.currentTimeMillis();
             List<ApplicationInfo> outList = new ArrayList<>();
+
+            // 使用 Set 提高查找效率 O(1) vs O(N)
+            Set<String> normalApplicationIds = new HashSet<>();
+            Set<Long> normalDatacenterIds = new HashSet<>();
+
+
             for (ApplicationInfo applicationInfo : checkOnlineList) {
                 Long timeStamp = applicationInfo.getTimeStamp();
                 if (currentTimeMillis - timeStamp > reportedOnlineTimeout) {
                     //超出上线报备时间间隔未报备上线
                     //标记需要处理
                     outList.add(applicationInfo);
+                } else {
+                    // 正常在线，保留
+                    normalApplicationIds.add(applicationInfo.getApplicationId());
+                    normalDatacenterIds.add(applicationInfo.getDatacenterId());
                 }
             }
 
+            // 步骤 2: 找出孤立的 ID（没有对应实例的 ID）
+            List<String> orphanApplicationIds = applicationIds.stream()
+                    .filter(id -> !normalApplicationIds.contains(id))
+                    .collect(Collectors.toList());
+
+            List<Long> orphanDatacenterIds = datacenterIds.stream()
+                    .filter(id -> !normalDatacenterIds.contains(id))
+                    .collect(Collectors.toList());
+
+            log.debug("在线检查完成 - 正常在线：{}, 超时离线：{}",
+                    normalApplicationIds.size(), outList.size());
+
+            //// 步骤 3: 验证数据一致性
+            //if (orphanApplicationIds.size() != orphanDatacenterIds.size()) {
+            //    log.error("数据不一致！缓冲离线的应用 ID 数量：{}, 缓冲离线的数据中心 ID 数量：{}",
+            //            orphanApplicationIds.size(), orphanDatacenterIds.size());
+            //    log.error("这可能意味着存在未配对的 ID，需要人工介入检查");
+            //    // 不抛异常，继续处理能处理的部分
+            //}
+
+            // 步骤 4: 缓冲离线的 ID 配对添加到待清理列表
+            int minSize = Math.max(orphanApplicationIds.size(), orphanDatacenterIds.size());
+            for (int i = 0; i < minSize; i++) {
+                String applicationIdTemp = null;
+                Long datacenterIdTemp = null;
+                try {
+                    applicationIdTemp = orphanApplicationIds.get(i);
+                } catch (Exception e) {
+                    log.warn(e.getMessage());
+                }
+                try {
+                    datacenterIdTemp = orphanDatacenterIds.get(i);
+                } catch (Exception e) {
+                    log.warn(e.getMessage());
+                }
+                ApplicationInfo orphanApp = new ApplicationInfo(
+                        applicationIdTemp,
+                        datacenterIdTemp,
+                        null
+                );
+                log.debug("发现缓冲离线应用实例，加入清理队列：{}", orphanApp);
+                outList.add(orphanApp);
+            }
+
             for (ApplicationInfo applicationInfo : outList) {
+                applicationInfo.setTimeStamp(null);
                 bean.saveId(outlineApplicationKey, JSONUtil.toJsonStr(applicationInfo));
             }
         } finally {
@@ -241,11 +342,14 @@ public class ApplicationContextHolder {
                 }
             }
             List<ApplicationInfo> outlineList = keys.stream().map(jsonStr -> JSONUtil.toBean(jsonStr, ApplicationInfo.class)).collect(Collectors.toList());
-
-            for (ApplicationInfo applicationInfo : outlineList) {
-                ApplicationUtil.destroyApplicationIdAndDatacenterId(applicationInfo.getApplicationId(), applicationInfo.getDatacenterId());
+            if (CollUtil.isNotEmpty(outlineList)) {
+                log.warn("发现 {} 个离线的应用实例需要清理", outlineList.size());
+                for (ApplicationInfo applicationInfo : outlineList) {
+                    ApplicationUtil.destroyApplicationIdAndDatacenterId(applicationInfo.getApplicationId(), applicationInfo.getDatacenterId());
+                }
+                bean.removeByKey(outlineApplicationKey);
             }
-            bean.removeByKey(outlineApplicationKey);
+
         } finally {
             if (tryLock) {
                 lock.unlock();
@@ -296,7 +400,7 @@ public class ApplicationContextHolder {
                 // 如果存在需要清理的异常重启键
                 if (CollUtil.isNotEmpty(staleKeys)) {
                     // 记录需要清理的异常重启键数量
-                    log.warn("发现 {} 个异常下线的应用实例需要清理", staleKeys.size());
+                    log.warn("发现 {} 个重启下线的应用实例需要清理", staleKeys.size());
                     // 遍历并清理每个异常重启键
                     for (ApplicationInfo key : staleKeys) {
                         try {
@@ -304,7 +408,7 @@ public class ApplicationContextHolder {
                             String applicationId = key.getApplicationId();
                             Long datacenterId = key.getDatacenterId();
                             // 记录清理信息
-                            log.debug("清理异常应用实例 - applicationId:{}, datacenterId:{}", applicationId, datacenterId);
+                            log.debug("清理重启应用实例 - applicationId:{}, datacenterId:{}", applicationId, datacenterId);
                             // 清理应用实例
                             ApplicationUtil.destroyApplicationIdAndDatacenterId(applicationId, datacenterId);
                         } catch (Exception e) {

@@ -26,8 +26,11 @@ public class Seconds1Job  extends DistributedJob {
 
         CompletableFuture.runAsync(()->{
             // 按顺序执行，确保数据一致性
+            log.debug("检查在线");
             ApplicationContextHolder.checkOnline(reportedOnlineTimeout);
+            log.debug("清理离线");
             ApplicationContextHolder.clearOutlineKeys();
+            log.debug("清理重启");
             ApplicationContextHolder.clearRestartKeys();
         }, executor);
     }

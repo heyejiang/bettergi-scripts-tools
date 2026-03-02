@@ -37,8 +37,10 @@ public class Minute1Job extends DistributedJob {
             //上报在线
             ApplicationInfo applicationInfo = ApplicationUtil.getApplicationInfo();
             if (applicationInfo != null){
+
                 //避免污染缓存数据
                 ApplicationInfo reportedOnline = applicationInfo.toReportedOnline();
+                log.debug("上报在线:{}",reportedOnline);
                 ApplicationContextHolder.reportedOnline(reportedOnline);
             }
         }, executor);
