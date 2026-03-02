@@ -73,10 +73,12 @@ public class ApplicationUtil implements AbsBean {
                 datacenterIds.add(Long.valueOf(works));
             }
         }
-        applicationInfo.datacenterId++;
+        Long datacenterId = getDatacenterId();
+        datacenterId++;
         if (datacenterIds.size() > 0) {
-            applicationInfo.datacenterId += datacenterIds.stream().filter(ObjectUtils::isNotEmpty).mapToLong(Long::longValue).max().getAsLong();
+            datacenterId += datacenterIds.stream().filter(ObjectUtils::isNotEmpty).mapToLong(Long::longValue).max().getAsLong();
         }
+        applicationInfo.setDatacenterId(datacenterId);
         datacenterIds.add(applicationInfo.datacenterId);
         cacheService.save(application_datacenter_key, JSONUtil.toJsonStr(datacenterIds));
     }
