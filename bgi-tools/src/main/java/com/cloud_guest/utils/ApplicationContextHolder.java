@@ -19,7 +19,6 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Resource;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -125,7 +124,10 @@ public class ApplicationContextHolder {
      * @param applicationInfo 应用信息对象
      * @return 保存结果，成功返回true
      */
-    private static boolean saveReportedOnline(String key, ApplicationInfo applicationInfo) {
+    private static boolean saveReportedOnline(String key, ApplicationInfo applicationInfo,Boolean add) {
+        if (ObjectUtils.isEmpty(add)) {
+            add = false;
+        }
         // 获取CacheService实例
         CacheService bean = SpringUtil.getBean(CacheService.class);
 
@@ -138,9 +140,9 @@ public class ApplicationContextHolder {
         if (!tryLock) {
             throw new GlobalException("存在其他操作，请稍后再试!");
         }
-    // 创建LinkedHashSet集合用于存储应用信息
+        // 创建LinkedHashSet集合用于存储应用信息
 
-    // 根据键从缓存中获取值
+        // 根据键从缓存中获取值
         Set<ApplicationInfo> hashSet = new LinkedHashSet<>();
         String values = bean.findValueByKey(key);
         if (StrUtil.isNotBlank(values)) {
@@ -157,7 +159,9 @@ public class ApplicationContextHolder {
         Long datacenterId = applicationInfo.getDatacenterId();
         hashSet.removeIf(a -> ObjectUtils.equals(a.getApplicationId(), applicationId)
                 && ObjectUtils.equals(a.getDatacenterId(), datacenterId));
-        hashSet.add(applicationInfo);
+        if (add) {
+            hashSet.add(applicationInfo);
+        }
 
         try {
             String jsonStr = JSONUtil.toJsonStr(hashSet.stream().collect(Collectors.toList()));
@@ -183,15 +187,23 @@ public class ApplicationContextHolder {
      */
     public static void reportedOnline(ApplicationInfo applicationInfo) {
         String onlineApplicationKey = KeyConstants.online_application_key;
-        saveReportedOnline(onlineApplicationKey, applicationInfo);
+        saveReportedOnline(onlineApplicationKey, applicationInfo,true);
+    }
+    /**
+     * 移除上报
+     * @param applicationInfo
+     */
+    public static void clearReportedOnline(ApplicationInfo applicationInfo) {
+        saveReportedOnline(KeyConstants.online_application_key, applicationInfo,false);
     }
 
     /**
-     * 检查在线状态的静态方法
+     * 检查在线并获取在线
      *
      * @param reportedOnlineTimeout 上线报备超时时间，单位为毫秒
+     * @return
      */
-    public static void checkOnline(Long reportedOnlineTimeout) {
+    public static List<ApplicationInfo> checkAndGetOnline(Long reportedOnlineTimeout) {
         // 如果传入的超时时间为空，则设置默认超时时间为5分钟
         if (reportedOnlineTimeout == null) {
             reportedOnlineTimeout = 1000 * 60 * 5l;
@@ -212,7 +224,7 @@ public class ApplicationContextHolder {
 
         try {
             // 从缓存中获取键对应的值
-            String valueByKey = bean.findValueByKey(outlineApplicationKey);
+            String valueByKey = bean.findValueByKey(KeyConstants.online_application_key);
             // 创建用于存储检查在线键的列表
             List<String> checkOnlineKeys = new ArrayList<>();  // 修复：使用可变列表
 
@@ -242,7 +254,7 @@ public class ApplicationContextHolder {
             // 使用 Set 提高查找效率 O(1) vs O(N)
             Set<String> normalApplicationIds = new HashSet<>();
             Set<Long> normalDatacenterIds = new HashSet<>();
-
+            List<ApplicationInfo> onlineList = new ArrayList<>();
 
             for (ApplicationInfo applicationInfo : checkOnlineList) {
                 Long timeStamp = applicationInfo.getTimeStamp();
@@ -254,6 +266,7 @@ public class ApplicationContextHolder {
                     // 正常在线，保留
                     normalApplicationIds.add(applicationInfo.getApplicationId());
                     normalDatacenterIds.add(applicationInfo.getDatacenterId());
+                    onlineList.add(applicationInfo);
                 }
             }
 
@@ -266,8 +279,6 @@ public class ApplicationContextHolder {
                     .filter(id -> !normalDatacenterIds.contains(id))
                     .collect(Collectors.toList());
 
-            log.debug("在线检查完成 - 正常在线：{}, 超时离线：{}",
-                    normalApplicationIds.size(), outList.size());
 
             //// 步骤 3: 验证数据一致性
             //if (orphanApplicationIds.size() != orphanDatacenterIds.size()) {
@@ -278,8 +289,8 @@ public class ApplicationContextHolder {
             //}
 
             // 步骤 4: 缓冲离线的 ID 配对添加到待清理列表
-            int minSize = Math.max(orphanApplicationIds.size(), orphanDatacenterIds.size());
-            for (int i = 0; i < minSize; i++) {
+            int maxSize = Math.max(orphanApplicationIds.size(), orphanDatacenterIds.size());
+            for (int i = 0; i < maxSize; i++) {
                 String applicationIdTemp = null;
                 Long datacenterIdTemp = null;
                 try {
@@ -300,11 +311,15 @@ public class ApplicationContextHolder {
                 log.debug("发现缓冲离线应用实例，加入清理队列：{}", orphanApp);
                 outList.add(orphanApp);
             }
+            log.debug("在线检查完成 - 正常在线：{}, 超时离线：{}",
+                    normalApplicationIds.size(), outList.size());
 
             for (ApplicationInfo applicationInfo : outList) {
                 applicationInfo.setTimeStamp(null);
                 bean.saveId(outlineApplicationKey, JSONUtil.toJsonStr(applicationInfo));
             }
+
+            return onlineList;
         } finally {
             if (tryLock) {
                 lock.unlock();
