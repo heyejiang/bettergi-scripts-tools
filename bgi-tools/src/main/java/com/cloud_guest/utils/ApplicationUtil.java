@@ -87,6 +87,8 @@ public class ApplicationUtil implements AbsBean {
                 datacenterIds.add(Long.valueOf(works));
             }
         }
+        //获取上报在线信息 存在延迟(会影响销毁)
+        ApplicationContextHolder.checkAndGetOnline(null).stream().map(ApplicationInfo::getDatacenterId).forEach(datacenterIds::add);
         Long datacenterId = getDatacenterId();
         datacenterId++;
         if (datacenterIds.size() > 0) {

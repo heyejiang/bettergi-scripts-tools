@@ -124,6 +124,9 @@ auth:
 
 logging:
   level:
+    com.cloud_guest.redis.service.impl: off
+    com.cloud_guest.task.job: off
+    com.cloud_guest.wrappers.lock: off
     com.cloud_guest: debug
 
 management:
