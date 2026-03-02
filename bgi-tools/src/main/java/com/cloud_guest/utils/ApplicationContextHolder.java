@@ -1,7 +1,12 @@
 package com.cloud_guest.utils;
 
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.spring.SpringUtil;
+import cn.hutool.json.JSONUtil;
 import com.cloud_guest.BgiToolsApplication;
+import com.cloud_guest.constants.KeyConstants;
+import com.cloud_guest.service.CacheService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.WebApplicationType;
@@ -10,6 +15,10 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @Author yan
@@ -23,6 +32,7 @@ public class ApplicationContextHolder {
 
     private static ConfigurableApplicationContext context;
     private static String[] args;
+    private static String restartKey = KeyConstants.all_application_key + ":" + KeyConstants.restart_key;
 
     public static void setContext(ConfigurableApplicationContext ctx, String[] startupArgs) {
         context = ctx;
@@ -30,8 +40,13 @@ public class ApplicationContextHolder {
     }
 
     public static void restart() {
+        String applicationId = ApplicationUtil.getApplicationId();
+        Long datacenterId = ApplicationUtil.getDatacenterId();
         Thread restartThread = new Thread(() -> {
             try {
+                String id = applicationId + "=" + datacenterId;
+                //设置重启key
+                SpringUtil.getBean(CacheService.class).saveId(restartKey, id);
                 String active = SpringUtil.getBean(Environment.class).getProperty("spring.profiles.active", String.class);
                 Thread.sleep(1000);  // 可选：缓冲时间
 
@@ -66,4 +81,52 @@ public class ApplicationContextHolder {
         restartThread.setDaemon(false);
         restartThread.start();
     }
+
+public static void clearRestartKeys() {
+    try {
+        CacheService bean = SpringUtil.getBean(CacheService.class);
+        String valueByKey = bean.findValueByKey(restartKey);
+        List<String> restartKeys = new ArrayList<>();  // 修复：使用可变列表
+
+        if (StrUtil.isNotBlank(valueByKey)) {
+            if (JSONUtil.isTypeJSONArray(valueByKey)) {
+                restartKeys.addAll(JSONUtil.toList(valueByKey, String.class));
+            } else {
+                restartKeys.add(valueByKey);
+            }
+        }
+
+        List<String> applicationIds = ApplicationUtil.getAllApplicationIds();
+        List<String> staleKeys = restartKeys.stream()
+            .filter(key -> {
+                try {
+                    // 验证键格式
+                    String[] parts = key.split("=", 2);
+                    return parts.length == 2 && !applicationIds.contains(key);
+                } catch (Exception e) {
+                    log.warn("无效的重启键格式: {}", key);
+                    return true; // 无效格式也清理掉
+                }
+            })
+            .collect(Collectors.toList());
+
+        if (CollUtil.isNotEmpty(staleKeys)) {
+            log.warn("发现 {} 个异常下线的应用实例需要清理", staleKeys.size());
+            for (String key : staleKeys) {
+                try {
+                    String[] parts = key.split("=", 2);
+                    String applicationId = parts[0];
+                    Long datacenterId = Long.parseLong(parts[1]);
+                    log.debug("清理异常应用实例 - applicationId:{}, datacenterId:{}", applicationId, datacenterId);
+                    ApplicationUtil.destroyApplicationIdAndDatacenterId(applicationId, datacenterId);
+                } catch (Exception e) {
+                    log.error("清理重启键失败: {}", key, e);
+                }
+            }
+        }
+    } catch (Exception e) {
+        log.error("清理重启键过程出现异常", e);
+    }
+}
+
 }

@@ -105,7 +105,7 @@ public class ApplicationUtil implements AbsBean {
      * @param applicationId 要销毁的应用ID
      * @param datacenterId  要销毁的数据中心ID
      */
-    public void destroyApplicationIdAndDatacenterId(String applicationId, Long datacenterId) {
+    public static void destroyApplicationIdAndDatacenterId(String applicationId, Long datacenterId) {
         // 调用destroyApplicationId方法销毁应用ID
         destroyApplicationId(applicationId);
         // 调用destroyDatacenterId方法销毁数据中心ID
