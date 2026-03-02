@@ -44,18 +44,25 @@ public class ApplicationUtil implements AbsBean {
         //上线
         String id = System.currentTimeMillis() + "@" + IdUtil.fastUUID();
         applicationId = id;
-        //Cache<String> cache = cacheService.find(application_key);
-        //if (cache != null && cache.getData() != null) {
-        //    List<String> ids = JSONUtil.toList(cache.getData(), String.class);
-        //    //nodeApplicationIds = ids.stream().filter(e -> !ObjectUtils.equals(e, id)).distinct().collect(Collectors.toList());
-        //}
+        initApplicationId();
+        initDatacenterId();
+    }
 
+    public void initApplicationId() {
         List<String> applicationIds = getAllApplicationIds();
-        applicationIds.add(id);
+        applicationIds.add(applicationId);
         cacheService.save(application_key, JSONUtil.toJsonStr(applicationIds));
+    }
 
-
-        //初始化workId
+    /**
+     * 初始化数据中心ID的方法
+     * 该方法主要负责从缓存中获取已有的数据中心ID集合，并生成一个新的数据中心ID
+     * 新生成的ID会在已有最大ID基础上递增，然后更新回缓存中
+     */
+    public void initDatacenterId() {
+        // 从Spring容器中获取CacheService实例的代码被注释掉了
+        //CacheService cacheService = SpringUtil.getBean(CacheService.class);
+        //初始化workId的变量（虽然变量名是workId，但实际处理的是datacenterId）
         String works = cacheService.findById(application_datacenter_key);
         LinkedHashSet<Long> datacenterIds = new LinkedHashSet<>();
         if (StrUtil.isNotBlank(works)) {
@@ -79,18 +86,85 @@ public class ApplicationUtil implements AbsBean {
         AbsBean.super.destroy();
         log.debug("==> 销毁ApplicationUtil <==");
         //下线
+        destroyApplicationIdAndDatacenterId();
+    }
+
+    /**
+     * 销毁应用ID和数据中心的公共方法
+     * 该方法调用重载的destroyApplicationIdAndDatacenterId方法，使用当前实例的applicationId和datacenterId作为参数
+     */
+    public void destroyApplicationIdAndDatacenterId() {
+        // 调用重载方法，传入当前实例的applicationId和datacenterId参数
+        destroyApplicationIdAndDatacenterId(applicationId, datacenterId);
+    }
+
+    /**
+     * 销毁应用ID和数据中心ID
+     * 该方法会分别调用destroyApplicationId和destroyDatacenterId方法来清理相关资源
+     *
+     * @param applicationId 要销毁的应用ID
+     * @param datacenterId  要销毁的数据中心ID
+     */
+    public void destroyApplicationIdAndDatacenterId(String applicationId, Long datacenterId) {
+        // 调用destroyApplicationId方法销毁应用ID
+        destroyApplicationId(applicationId);
+        // 调用destroyDatacenterId方法销毁数据中心ID
+        destroyDatacenterId(datacenterId);
+    }
+
+    /**
+     * 清理应用程序ID的方法
+     * 从缓存中移除指定的应用程序ID，并更新缓存
+     */
+    public void destroyApplicationId() {
+        destroyApplicationId(applicationId);
+    }
+
+    /**
+     * 清理应用程序ID的方法
+     * 从缓存中移除指定的应用程序ID，并更新缓存
+     */
+    public static void destroyApplicationId(String applicationId) {
+        // 通过Spring工具类获取CacheService的Bean实例
+        CacheService cacheService = SpringUtil.getBean(CacheService.class);
+        // 根据application_key查找缓存
         Cache<String> cache = cacheService.find(application_key);
+        // 创建一个ArrayList用于存储处理后的ID列表
         List<String> list = new ArrayList<>();
+        // 检查缓存及其数据是否存在
         if (cache != null && cache.getData() != null) {
+            // 将缓存中的JSON数据转换为String类型的List
             List<String> ids = JSONUtil.toList(cache.getData(), String.class);
+            // 使用Stream过滤掉与当前applicationId相同的元素，并去重
             list = ids.stream().filter(e -> !ObjectUtils.equals(e, applicationId)).distinct().collect(Collectors.toList());
         }
+        // 将处理后的List转换为JSON字符串并保存到缓存中
         cacheService.save(application_key, JSONUtil.toJsonStr(list));
+    }
 
-        //下线datacenterId
+    /**
+     * 销毁数据中心ID的方法
+     * 该方法用于从缓存中移除指定的数据中心ID
+     */
+    public static void destroyDatacenterId() {
+        destroyDatacenterId(datacenterId);
+    }
+
+    /**
+     * 销毁指定ID的数据中心
+     *
+     * @param datacenterId 要销毁的数据中心ID
+     */
+    public static void destroyDatacenterId(Long datacenterId) {
+        // 从Spring上下文中获取CacheService的Bean实例
+        CacheService cacheService = SpringUtil.getBean(CacheService.class);
+        // 根据键从缓存中获取数据中心数据
         String datacenters = cacheService.findById(application_datacenter_key);
+        // 使用LinkedHashSet来存储数据中心ID，保证顺序且不重复
         LinkedHashSet<Long> datacenterIds = new LinkedHashSet<>();
+        // 检查从缓存获取的数据是否为空
         if (StrUtil.isNotBlank(datacenters)) {
+            // 检查数据是否为JSON数组格式
             if (JSONUtil.isTypeJSONArray(datacenters)) {
                 JSONUtil.toList(datacenters, String.class).stream().filter(ObjectUtils::isNotEmpty).map(Long::valueOf).forEach(datacenterIds::add);
             } else {
