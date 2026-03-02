@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 @Getter
 @AllArgsConstructor
 public enum CronTemplate {
+    SECONDS("0/%s * * * * ?",TimeUnit.SECONDS, DatePattern.UTC_SIMPLE_PATTERN.replace(":ss", "")),
     MINUTE("0 0/%s * * * ?",TimeUnit.MINUTES, DatePattern.UTC_SIMPLE_PATTERN.replace(":ss", "")),
     HOUR("0 0 0/%s * * ?",TimeUnit.HOURS, DatePattern.UTC_SIMPLE_PATTERN.replace(":mm:ss", "")),
     CLOCK("0 0 %s * * ?",null, DatePattern.UTC_SIMPLE_PATTERN.replace(":mm:ss", ""));

@@ -6,6 +6,7 @@ import com.cloud_guest.task.enums.QuartzGroup;
 import com.cloud_guest.task.enums.QuartzName;
 import com.cloud_guest.task.job.Clock0Job;
 import com.cloud_guest.task.job.Minute1Job;
+import com.cloud_guest.task.job.Seconds1Job;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
 import org.springframework.context.annotation.Bean;
@@ -35,6 +36,7 @@ public class QuartzConfig {
         Map<QuartzName, Class> quartzClassMap = new LinkedHashMap<>();
         quartzClassMap.put(QuartzName.MINUTE_1, Minute1Job.class);
         quartzClassMap.put(QuartzName.CLOCK_0, Clock0Job.class);
+        quartzClassMap.put(QuartzName.SECONDS_1, Seconds1Job.class);
 
         log.debug("~~~~~~~~~~~~~~~~~~QuartzConfig init~~~~~~~~~~~~~~~~~~");
         QuartzGroup quartzGroup = QuartzGroup.DEFAULT;
@@ -172,5 +174,14 @@ public class QuartzConfig {
     public Trigger minute1Trigger() {
         //log.debug("~~~~~~~~~~~~~~~~~~minute1Trigger~~~~~~~~~~~~~~~~~~");
         return buildNewTrigger(QuartzName.MINUTE_1);
+    }
+    @Bean
+    public JobDetail seconds1JobDetail() {
+        return buildNewJobDetail(QuartzName.SECONDS_1);
+    }
+
+    @Bean
+    public Trigger seconds1Trigger() {
+        return buildNewTrigger(QuartzName.SECONDS_1);
     }
 }

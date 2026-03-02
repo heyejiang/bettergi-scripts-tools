@@ -6,6 +6,10 @@ package com.cloud_guest.task.enums;
  */
 public enum QuartzName {
     /**
+     * 每秒
+     */
+    SECONDS_1,
+    /**
      * 每分钟
      */
     MINUTE_1,
