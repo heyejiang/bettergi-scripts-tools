@@ -1,70 +1,19 @@
-package com.cloud_guest.task.domain;
+package com.cloud_guest.task.util;
 
-
-import cn.hutool.core.util.NumberUtil;
-import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.spring.SpringUtil;
-import com.cloud_guest.task.enums.CronTemplate;
-import com.cloud_guest.task.enums.QuartzGroup;
-import com.cloud_guest.task.enums.QuartzName;
-import com.cloud_guest.task.job.Clock0Job;
-import com.cloud_guest.task.job.Minute1Job;
-import com.cloud_guest.task.job.Seconds1Job;
-import lombok.*;
+import com.cloud_guest.task.domain.TaskDef;
+import com.cloud_guest.task.domain.TaskInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-
-import javax.annotation.PostConstruct;
-import javax.annotation.Resource;
-import java.util.*;
-import java.util.stream.Collectors;
 
 /**
- * @author Yao
- * @date 2024/5/28 17:52
+ * @Author yan
+ * @Date 2026/3/2 22:14:39
+ * @Description
  */
-@Configuration
 @Slf4j
-public class QuartzConfig {
+public class QuartzUtil {
     public static final String TASK_LOG_KEY = "[定时任务]";
-
-    // 如果你已经有 QuartzName 枚举，可以继续用它
-    // 这里我们用一个简单的定义类，更容易阅读和扩展
-    public static List<TaskInfo> TASKS = new ArrayList<>();
-
-    public void initTasks() {
-        List<TaskInfo> tasks = new ArrayList<>();
-        tasks.add(new TaskDef(QuartzName.SECONDS_1, QuartzGroup.DEFAULT, Seconds1Job.class, CronTemplate.SECONDS).buildToTaskInfo());
-        tasks.add(new TaskDef(QuartzName.MINUTE_1, QuartzGroup.DEFAULT, Minute1Job.class, CronTemplate.MINUTE).buildToTaskInfo());
-        tasks.add(new TaskDef(QuartzName.CLOCK_0, QuartzGroup.DEFAULT, Clock0Job.class, CronTemplate.CLOCK).buildToTaskInfo());
-        TASKS.addAll(tasks);
-    }
-
-    @PostConstruct
-    public void init() throws SchedulerException {
-        initTasks();
-        Scheduler scheduler = SpringUtil.getBean(Scheduler.class);
-        log.info("{}开始动态注册 Quartz 定时任务... 共 {} 个", TASK_LOG_KEY, TASKS.size());
-
-        for (TaskInfo taskInfo : TASKS) {
-            try {
-                registerTask(taskInfo);
-                log.info("{}任务注册成功：{} → {}", TASK_LOG_KEY, taskInfo.getName(), taskInfo.getCronExpression());
-            } catch (Exception e) {
-                log.error("{}任务注册失败：{}，原因：{}", TASK_LOG_KEY, taskInfo.getName(), e.getMessage(), e);
-            }
-        }
-
-        // 可选：启动时检查 scheduler 是否已经启动
-        if (!scheduler.isStarted()) {
-            scheduler.start();
-        }
-
-        log.info("所有 Quartz 任务动态注册完成");
-    }
-
     /**
      * 注册一个定时任务
      *
@@ -75,7 +24,6 @@ public class QuartzConfig {
         TaskInfo taskInfo = def.buildToTaskInfo();
         registerTask(taskInfo);
     }
-
     /**
      * 注册一个定时任务
      *
@@ -137,59 +85,6 @@ public class QuartzConfig {
 
         scheduler.scheduleJob(jobDetail, trigger);
     }
-
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    private static class TaskInfo {
-        String name;
-        String group;
-        Class<? extends Job> jobClass;
-        String cronExpression;
-    }
-
-    // 辅助记录类（也可以用 record，如果用 Java 14+）
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    private static class TaskDef {
-        QuartzName name;
-        QuartzGroup group;
-        Class<? extends Job> jobClass;
-        CronTemplate cronTemplate;
-        String value;
-
-        String cron() {
-            return String.format(cronTemplate.getCronTemplate(), value);
-        }
-
-        public TaskDef(QuartzName name, QuartzGroup group, Class<? extends Job> jobClass, CronTemplate cronTemplate) {
-            String[] split = name.name().split("_", 2);
-            String value = split[1];
-            if (StrUtil.isBlank(value)) {
-                throw new IllegalArgumentException("任务名称格式不正确，请检查 QuartzName 枚举");
-            }
-            try {
-                long num = Long.parseLong(value);
-                if (num < 0) {
-                    throw new IllegalArgumentException("任务名称必须为非负整数 如SECONDS_1");
-                }
-            } catch (NumberFormatException e) {
-                throw new IllegalArgumentException("任务名称格式不正确，请检查 QuartzName 枚举", e);
-            }
-
-            this.name = name;
-            this.group = group;
-            this.jobClass = jobClass;
-            this.cronTemplate = cronTemplate;
-            this.value = value;
-        }
-
-        public TaskInfo buildToTaskInfo() {
-            return new TaskInfo(name.name(), group.name(), jobClass, cron());
-        }
-    }
-
     // ------------------ 可选扩展功能 ------------------
 
     // 未来如果需要动态添加任务（比如管理后台调用）
