@@ -16,6 +16,9 @@ public interface KeyConstants {
     String all_application_key = "ALL:application";
     String all_application_datacenter_key = "ALL:DATACENTER:application";
     String restart_key = "restart";
+    String online_application_key = "online_application";
+    String outline_application_key = "outline_application";
+
 
     String redis_file_json_key = "redis:file:json:";
     String task_key = "task:";
