@@ -13,8 +13,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ApplicationInfo {
-    private String applicationId;
-    private Long datacenterId;
+    public String applicationId;
+    public Long datacenterId;
     //上报时间
-    private Long timeStamp;
+    public Long timeStamp;
+
+    public ApplicationInfo toReportedOnline() {
+        return new ApplicationInfo(applicationId, datacenterId, System.currentTimeMillis());
+    }
 }

@@ -112,6 +112,14 @@ public class ApplicationContextHolder {
         ApplicationInfo applicationInfo = new ApplicationInfo(applicationId, datacenterId, Long.valueOf(System.currentTimeMillis()));
         // 通过Spring工具类获取CacheService的Bean，将应用信息以JSON字符串形式保存到缓存中
         // 使用预定义的键名常量online_application_key作为缓存键
+        reportedOnline(applicationInfo);
+    }
+
+    /**
+     * 上报应用在线信息
+     * @param applicationInfo
+     */
+    public static void reportedOnline(ApplicationInfo applicationInfo) {
         String onlineApplicationKey = KeyConstants.online_application_key;
         LockWrapper lock = LockUtil.getLock(onlineApplicationKey);
         boolean tryLock = lock.tryLock(1l, TimeUnit.MINUTES);

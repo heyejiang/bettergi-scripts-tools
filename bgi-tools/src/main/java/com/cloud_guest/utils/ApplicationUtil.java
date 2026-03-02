@@ -6,6 +6,7 @@ import cn.hutool.extra.spring.SpringUtil;
 import cn.hutool.json.JSONUtil;
 import com.cloud_guest.aop.bean.AbsBean;
 import com.cloud_guest.constants.KeyConstants;
+import com.cloud_guest.domain.ApplicationInfo;
 import com.cloud_guest.domain.Cache;
 import com.cloud_guest.service.CacheService;
 import com.cloud_guest.utils.object.ObjectUtils;
@@ -28,8 +29,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Component
 public class ApplicationUtil implements AbsBean {
-    public static String applicationId = null;
-    public static Long datacenterId = 0l;
+    public static ApplicationInfo applicationInfo = new ApplicationInfo(null, 0l, System.currentTimeMillis());
     //public static List<String> nodeApplicationIds = new ArrayList<>();
     private static final String application_key = KeyConstants.all_application_key;
     private static final String application_datacenter_key = KeyConstants.all_application_datacenter_key;
@@ -43,14 +43,15 @@ public class ApplicationUtil implements AbsBean {
         log.debug("==> 初始化ApplicationUtil <==");
         //上线
         String id = System.currentTimeMillis() + "@" + IdUtil.fastUUID();
-        applicationId = id;
+        applicationInfo.setApplicationId(id);
+
         initApplicationId();
         initDatacenterId();
     }
 
     public void initApplicationId() {
         List<String> applicationIds = getAllApplicationIds();
-        applicationIds.add(applicationId);
+        applicationIds.add(applicationInfo.getApplicationId());
         cacheService.save(application_key, JSONUtil.toJsonStr(applicationIds));
     }
 
@@ -72,11 +73,11 @@ public class ApplicationUtil implements AbsBean {
                 datacenterIds.add(Long.valueOf(works));
             }
         }
-        datacenterId++;
+        applicationInfo.datacenterId++;
         if (datacenterIds.size() > 0) {
-            datacenterId += datacenterIds.stream().filter(ObjectUtils::isNotEmpty).mapToLong(Long::longValue).max().getAsLong();
+            applicationInfo.datacenterId += datacenterIds.stream().filter(ObjectUtils::isNotEmpty).mapToLong(Long::longValue).max().getAsLong();
         }
-        datacenterIds.add(datacenterId);
+        datacenterIds.add(applicationInfo.datacenterId);
         cacheService.save(application_datacenter_key, JSONUtil.toJsonStr(datacenterIds));
     }
 
@@ -95,7 +96,7 @@ public class ApplicationUtil implements AbsBean {
      */
     public void destroyApplicationIdAndDatacenterId() {
         // 调用重载方法，传入当前实例的applicationId和datacenterId参数
-        destroyApplicationIdAndDatacenterId(applicationId, datacenterId);
+        destroyApplicationIdAndDatacenterId(getApplicationId(), getDatacenterId());
     }
 
     /**
@@ -117,7 +118,7 @@ public class ApplicationUtil implements AbsBean {
      * 从缓存中移除指定的应用程序ID，并更新缓存
      */
     public void destroyApplicationId() {
-        destroyApplicationId(applicationId);
+        destroyApplicationId(getApplicationId());
     }
 
     /**
@@ -147,7 +148,7 @@ public class ApplicationUtil implements AbsBean {
      * 该方法用于从缓存中移除指定的数据中心ID
      */
     public static void destroyDatacenterId() {
-        destroyDatacenterId(datacenterId);
+        destroyDatacenterId(getDatacenterId());
     }
 
     /**
@@ -176,11 +177,11 @@ public class ApplicationUtil implements AbsBean {
     }
 
     public static String getApplicationId() {
-        return applicationId;
+        return applicationInfo.getApplicationId();
     }
 
     public static Long getDatacenterId() {
-        return datacenterId;
+        return applicationInfo.getDatacenterId();
     }
 
     public static List<String> getAllApplicationIds() {
