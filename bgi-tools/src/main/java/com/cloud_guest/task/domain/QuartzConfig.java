@@ -1,6 +1,8 @@
 package com.cloud_guest.task.domain;
 
 
+import cn.hutool.core.util.NumberUtil;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.spring.SpringUtil;
 import com.cloud_guest.task.enums.CronTemplate;
 import com.cloud_guest.task.enums.QuartzGroup;
@@ -30,24 +32,28 @@ public class QuartzConfig {
 
     // 如果你已经有 QuartzName 枚举，可以继续用它
     // 这里我们用一个简单的定义类，更容易阅读和扩展
-    public static final List<TaskDef> TASKS = Arrays.asList(
-            new TaskDef(QuartzName.SECONDS_1, QuartzGroup.DEFAULT, Seconds1Job.class,  CronTemplate.SECONDS, "1"),
-            new TaskDef(QuartzName.MINUTE_1,  QuartzGroup.DEFAULT, Minute1Job.class,   CronTemplate.MINUTE,  "1"),
-            new TaskDef(QuartzName.CLOCK_0,   QuartzGroup.DEFAULT, Clock0Job.class,    CronTemplate.CLOCK,   "0")
-            // 新增任务 → 只需在这里加一行
-    );
+    public static List<TaskDef> TASKS = new ArrayList<>();
+
+    public void initTasks() {
+        List<TaskDef> tasks = new ArrayList<>();
+        tasks.add(new TaskDef(QuartzName.SECONDS_1, QuartzGroup.DEFAULT, Seconds1Job.class, CronTemplate.SECONDS));
+        tasks.add(new TaskDef(QuartzName.MINUTE_1, QuartzGroup.DEFAULT, Minute1Job.class, CronTemplate.MINUTE));
+        tasks.add(new TaskDef(QuartzName.CLOCK_0, QuartzGroup.DEFAULT, Clock0Job.class, CronTemplate.CLOCK));
+        TASKS.addAll(tasks);
+    }
 
     @PostConstruct
     public void init() throws SchedulerException {
+        initTasks();
         Scheduler scheduler = SpringUtil.getBean(Scheduler.class);
-        log.info("{}开始动态注册 Quartz 定时任务... 共 {} 个",TASK_LOG_KEY, TASKS.size());
+        log.info("{}开始动态注册 Quartz 定时任务... 共 {} 个", TASK_LOG_KEY, TASKS.size());
 
         for (TaskDef def : TASKS) {
             try {
                 registerTask(def);
-                log.info("{}任务注册成功：{} → {}",TASK_LOG_KEY, def.name, def.cron());
+                log.info("{}任务注册成功：{} → {}", TASK_LOG_KEY, def.name, def.cron());
             } catch (Exception e) {
-                log.error("{}任务注册失败：{}，原因：{}",TASK_LOG_KEY, def.name, e.getMessage(), e);
+                log.error("{}任务注册失败：{}，原因：{}", TASK_LOG_KEY, def.name, e.getMessage(), e);
             }
         }
 
@@ -60,7 +66,7 @@ public class QuartzConfig {
     }
 
     private void registerTask(TaskDef def) throws SchedulerException {
-        JobKey jobKey     = new JobKey(def.name.name(), def.group.name());
+        JobKey jobKey = new JobKey(def.name.name(), def.group.name());
         TriggerKey triggerKey = new TriggerKey(def.name.name(), def.group.name());
 
         // 1. JobDetail
@@ -102,14 +108,36 @@ public class QuartzConfig {
     @NoArgsConstructor
     @AllArgsConstructor
     private static class TaskDef {
-        QuartzName    name;
-        QuartzGroup   group;
+        QuartzName name;
+        QuartzGroup group;
         Class<? extends Job> jobClass;
-        CronTemplate  cronTemplate;
-        String        value;
+        CronTemplate cronTemplate;
+        String value;
 
         String cron() {
             return String.format(cronTemplate.getCronTemplate(), value);
+        }
+
+        public TaskDef(QuartzName name, QuartzGroup group, Class<? extends Job> jobClass, CronTemplate cronTemplate) {
+            String[] split = name.name().split("_", 2);
+            String value = split[1];
+            if (StrUtil.isBlank(value)) {
+                throw new IllegalArgumentException("任务名称格式不正确，请检查 QuartzName 枚举");
+            }
+            try {
+                long num = Long.parseLong(value);
+                if (num < 0) {
+                    throw new IllegalArgumentException("任务名称必须为非负整数 如SECONDS_1");
+                }
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("任务名称格式不正确，请检查 QuartzName 枚举", e);
+            }
+
+            this.name = name;
+            this.group = group;
+            this.jobClass = jobClass;
+            this.cronTemplate = cronTemplate;
+            this.value = value;
         }
     }
 
