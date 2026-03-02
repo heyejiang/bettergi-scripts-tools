@@ -5,6 +5,7 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.spring.SpringUtil;
 import cn.hutool.json.JSONUtil;
 import com.cloud_guest.aop.bean.AbsBean;
+import com.cloud_guest.constants.KeyConstants;
 import com.cloud_guest.domain.Cache;
 import com.cloud_guest.service.CacheService;
 import com.cloud_guest.utils.object.ObjectUtils;
@@ -30,8 +31,8 @@ public class ApplicationUtil implements AbsBean {
     public static String applicationId = null;
     public static Long datacenterId = 0l;
     //public static List<String> nodeApplicationIds = new ArrayList<>();
-    private static final String application_key = "ALL:application";
-    private static final String application_datacenter_key = "ALL:DATACENTER:application";
+    private static final String application_key = KeyConstants.all_application_key;
+    private static final String application_datacenter_key = KeyConstants.all_application_datacenter_key;
     @Resource
     private CacheService cacheService;
 

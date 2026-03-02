@@ -13,6 +13,9 @@ public interface KeyConstants {
     String auto_plan_key_uid_all = "AUTO_PLAN:UID:ALL";
     String auto_plan_key_domain_all = "AUTO_PLAN_DOMAIN:ALL";
     String auto_plan_key_country_all = "AUTO_PLAN_COUNTRY:ALL";
+    String all_application_key = "ALL:application";
+    String all_application_datacenter_key = "ALL:DATACENTER:application";
+    String restart_key = "restart";
 
     String redis_file_json_key = "redis:file:json:";
     String task_key = "task:";
