@@ -112,24 +112,50 @@ public class ApplicationContextHolder {
         ApplicationInfo applicationInfo = new ApplicationInfo(applicationId, datacenterId, Long.valueOf(System.currentTimeMillis()));
         // 通过Spring工具类获取CacheService的Bean，将应用信息以JSON字符串形式保存到缓存中
         // 使用预定义的键名常量online_application_key作为缓存键
-        SpringUtil.getBean(CacheService.class).saveId(KeyConstants.online_application_key, JSONUtil.toJsonStr(applicationInfo));
+        String onlineApplicationKey = KeyConstants.online_application_key;
+        LockWrapper lock = LockUtil.getLock(onlineApplicationKey);
+        boolean tryLock = lock.tryLock(1l, TimeUnit.MINUTES);
+        if (!tryLock) {
+            throw new GlobalException("获取锁失败:" + onlineApplicationKey);
+        }
+        try {
+            applicationInfo.setTimeStamp(System.currentTimeMillis());
+            SpringUtil.getBean(CacheService.class).saveId(onlineApplicationKey, JSONUtil.toJsonStr(applicationInfo));
+        } finally {
+            if (tryLock) {
+                lock.unlock();
+            }
+        }
     }
 
+    /**
+     * 检查在线状态的静态方法
+     *
+     * @param reportedOnlineTimeout 上线报备超时时间，单位为毫秒
+     */
     public static void checkOnline(Long reportedOnlineTimeout) {
+        // 如果传入的超时时间为空，则设置默认超时时间为5分钟
         if (reportedOnlineTimeout == null) {
             reportedOnlineTimeout = 1000 * 60 * 5l;
         }
+        // 从Spring容器中获取CacheService的Bean实例
         CacheService bean = SpringUtil.getBean(CacheService.class);
+        // 定义用于存储上线应用信息的缓存键
         String outlineApplicationKey = KeyConstants.outline_application_key;
 
+        // 获取指定键的锁对象
         LockWrapper lock = LockUtil.getLock(outlineApplicationKey);
+        // 尝试获取锁，最多等待1分钟
         boolean tryLock = lock.tryLock(1l, TimeUnit.MINUTES);
+        // 如果获取锁失败，抛出全局异常
         if (!tryLock) {
             throw new GlobalException("获取锁失败:" + outlineApplicationKey);
         }
 
         try {
+            // 从缓存中获取键对应的值
             String valueByKey = bean.findValueByKey(outlineApplicationKey);
+            // 创建用于存储检查在线键的列表
             List<String> checkOnlineKeys = new ArrayList<>();  // 修复：使用可变列表
 
             // 如果获取到的值不为空
@@ -144,6 +170,7 @@ public class ApplicationContextHolder {
                 }
             }
 
+            // 将JSON字符串转换为ApplicationInfo对象列表，并过滤掉当前应用实例
             List<ApplicationInfo> checkOnlineList = checkOnlineKeys.stream().map(jsonStr -> JSONUtil.toBean(jsonStr, ApplicationInfo.class))
                     // 过滤掉当前应用实例 绝对在线
                     .filter(obj -> !ObjectUtils.equals(obj.getApplicationId(), ApplicationUtil.getApplicationId()))
