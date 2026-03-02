@@ -185,7 +185,7 @@ public class ApplicationContextHolder {
             throw new GlobalException("获取锁失败:" + outlineApplicationKey);
         }
         try {
-            String valueByKey = bean.findValueByKey(KeyConstants.outline_application_key);
+            String valueByKey = bean.findValueByKey(outlineApplicationKey);
             // 创建一个可变列表用于存储重启键
             List<String> keys = new ArrayList<>();  // 修复：使用可变列表
 
