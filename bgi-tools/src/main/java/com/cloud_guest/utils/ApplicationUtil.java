@@ -1,13 +1,10 @@
 package com.cloud_guest.utils;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.IdUtil;
-import cn.hutool.core.util.StrUtil;
-import cn.hutool.extra.spring.SpringUtil;
-import cn.hutool.json.JSONUtil;
 import com.cloud_guest.aop.bean.AbsBean;
 import com.cloud_guest.constants.KeyConstants;
 import com.cloud_guest.domain.ApplicationInfo;
-import com.cloud_guest.domain.Cache;
 import com.cloud_guest.service.CacheService;
 import com.cloud_guest.utils.object.ObjectUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -16,10 +13,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -34,9 +28,6 @@ public class ApplicationUtil implements AbsBean {
     //public static List<String> nodeApplicationIds = new ArrayList<>();
     private static final String application_key = KeyConstants.all_application_key;
     private static final String application_datacenter_key = KeyConstants.all_application_datacenter_key;
-    private static final String remove_application_datacenter_key = "remove_application_datacenter_key";
-    private static final String remove_application_key = "remove_application_key";
-    private static final String remove_datacenter_key = "remove_datacenter_key";
     private static boolean initEnd = false;
     @Resource
     private CacheService cacheService;
@@ -46,20 +37,36 @@ public class ApplicationUtil implements AbsBean {
     public void init() {
         AbsBean.super.init();
         log.debug("==> 初始化ApplicationUtil <==");
+        initApplicationInfo();
+        initEnd = true;
+    }
+    @PreDestroy
+    @Override
+    public void destroy() {
+        AbsBean.super.destroy();
+        log.debug("==> 销毁ApplicationUtil <==");
+        //下线
+        destroyApplicationInfo();
+    }
+
+    public static void initApplicationInfo() {
+        List<ApplicationInfo> applicationInfos = ApplicationContextHolder.checkAndGetOnline(null);
         //上线
         String id = System.currentTimeMillis() + "@" + IdUtil.fastUUID();
         applicationInfo.setApplicationId(id);
-
-        initApplicationId();
-        initDatacenterId();
-        ApplicationContextHolder.reportedOnline(applicationInfo);
-        initEnd = true;
+        Long datacenterId = applicationInfo.getDatacenterId();
+        datacenterId++;
+        datacenterId += CollUtil.isEmpty(applicationInfos) ? 0l : applicationInfos.stream().map(ApplicationInfo::getDatacenterId).filter(ObjectUtils::isNotEmpty).mapToLong(Long::longValue).max().getAsLong();
+        applicationInfo.setDatacenterId(datacenterId);
+        ApplicationContextHolder.reportedOnline(applicationInfo.toReportedOnline());
     }
 
-    public void initApplicationId() {
-        List<String> applicationIds = getAllApplicationIds();
-        applicationIds.add(applicationInfo.getApplicationId());
-        cacheService.save(application_key, JSONUtil.toJsonStr(applicationIds));
+    /**
+     * 销毁应用ID和数据中心的公共方法
+     * 该方法调用重载的destroyApplicationIdAndDatacenterId方法，使用当前实例的applicationId和datacenterId作为参数
+     */
+    public static void destroyApplicationInfo() {
+        ApplicationContextHolder.clearReportedOnline(applicationInfo);
     }
 
     public static ApplicationInfo getApplicationInfo() {
@@ -67,149 +74,6 @@ public class ApplicationUtil implements AbsBean {
             return null;
         }
         return applicationInfo;
-    }
-
-    /**
-     * 初始化数据中心ID的方法
-     * 该方法主要负责从缓存中获取已有的数据中心ID集合，并生成一个新的数据中心ID
-     * 新生成的ID会在已有最大ID基础上递增，然后更新回缓存中
-     */
-    public void initDatacenterId() {
-        // 从Spring容器中获取CacheService实例的代码被注释掉了
-        //CacheService cacheService = SpringUtil.getBean(CacheService.class);
-        //初始化workId的变量（虽然变量名是workId，但实际处理的是datacenterId）
-        String works = cacheService.findById(application_datacenter_key);
-        LinkedHashSet<Long> datacenterIds = new LinkedHashSet<>();
-        if (StrUtil.isNotBlank(works)) {
-            if (JSONUtil.isTypeJSONArray(works)) {
-                JSONUtil.toList(works, String.class).stream().map(Long::valueOf).forEach(datacenterIds::add);
-            } else {
-                datacenterIds.add(Long.valueOf(works));
-            }
-        }
-       List<Long> sumIds=new ArrayList<Long>();
-        //获取上报在线信息 存在延迟(会影响销毁)
-        ApplicationContextHolder.checkAndGetOnline(null).stream().map(ApplicationInfo::getDatacenterId).forEach(sumIds::add);
-        Long datacenterId = getDatacenterId();
-        datacenterId++;
-        sumIds.addAll(datacenterIds);
-        if (sumIds.size() > 0) {
-            datacenterId += sumIds.stream().filter(ObjectUtils::isNotEmpty).mapToLong(Long::longValue).max().getAsLong();
-        }
-        applicationInfo.setDatacenterId(datacenterId);
-        datacenterIds.add(datacenterId);
-        cacheService.save(application_datacenter_key, JSONUtil.toJsonStr(datacenterIds));
-    }
-
-    @PreDestroy
-    @Override
-    public void destroy() {
-        AbsBean.super.destroy();
-        log.debug("==> 销毁ApplicationUtil <==");
-        //下线
-        destroyApplicationIdAndDatacenterId();
-    }
-
-    /**
-     * 销毁应用ID和数据中心的公共方法
-     * 该方法调用重载的destroyApplicationIdAndDatacenterId方法，使用当前实例的applicationId和datacenterId作为参数
-     */
-    public void destroyApplicationIdAndDatacenterId() {
-        try {
-            destroyApplicationIdAndDatacenterId(getApplicationId(), getDatacenterId());
-        } finally {
-            ApplicationContextHolder.clearReportedOnline(applicationInfo);
-        }
-    }
-
-    /**
-     * 销毁应用ID和数据中心ID
-     * 该方法会分别调用destroyApplicationId和destroyDatacenterId方法来清理相关资源
-     *
-     * @param applicationId 要销毁的应用ID
-     * @param datacenterId  要销毁的数据中心ID
-     */
-    public static void destroyApplicationIdAndDatacenterId(String applicationId, Long datacenterId) {
-        // 调用destroyApplicationId方法销毁应用ID
-        destroyApplicationId(applicationId);
-        // 调用destroyDatacenterId方法销毁数据中心ID
-        destroyDatacenterId(datacenterId);
-    }
-
-    /**
-     * 清理应用程序ID的方法
-     * 从缓存中移除指定的应用程序ID，并更新缓存
-     */
-    public void destroyApplicationId() {
-        destroyApplicationId(getApplicationId());
-    }
-
-    /**
-     * 清理应用程序ID的方法
-     * 从缓存中移除指定的应用程序ID，并更新缓存
-     */
-    public static void destroyApplicationId(String applicationId) {
-        if (StrUtil.isBlank(applicationId)) {
-            return;
-        }
-        // 通过Spring工具类获取CacheService的Bean实例
-        CacheService cacheService = SpringUtil.getBean(CacheService.class);
-        // 根据application_key查找缓存
-        Cache<String> cache = cacheService.find(application_key);
-        // 创建一个ArrayList用于存储处理后的ID列表
-        List<String> list = new ArrayList<>();
-        // 检查缓存及其数据是否存在
-        if (cache != null && cache.getData() != null) {
-            // 将缓存中的JSON数据转换为String类型的List
-            List<String> ids = JSONUtil.toList(cache.getData(), String.class);
-            // 使用Stream过滤掉与当前applicationId相同的元素，并去重
-            list = ids.stream().filter(e -> !ObjectUtils.equals(e, applicationId)).distinct().collect(Collectors.toList());
-        }
-        // 将处理后的List转换为JSON字符串并保存到缓存中
-        cacheService.save(application_key, JSONUtil.toJsonStr(list));
-    }
-
-    /**
-     * 销毁数据中心ID的方法
-     * 该方法用于从缓存中移除指定的数据中心ID
-     */
-    public static void destroyDatacenterId() {
-        destroyDatacenterId(getDatacenterId());
-    }
-
-    /**
-     * 销毁指定ID的数据中心
-     *
-     * @param datacenterId 要销毁的数据中心ID
-     */
-    public static void destroyDatacenterId(Long datacenterId) {
-        if (ObjectUtils.isEmpty(datacenterId)) {
-            return;
-        }
-        // 从Spring上下文中获取CacheService的Bean实例
-        CacheService cacheService = SpringUtil.getBean(CacheService.class);
-        // 使用LinkedHashSet来存储数据中心ID，保证顺序且不重复
-        LinkedHashSet<Long> datacenterIds = new LinkedHashSet<>(getAllDatacenterIds());
-        datacenterIds.remove(datacenterId);
-        cacheService.save(application_datacenter_key, JSONUtil.toJsonStr(datacenterIds));
-    }
-
-    public static List<Long> getAllDatacenterIds() {   // 从Spring上下文中获取CacheService的Bean实例
-        CacheService cacheService = SpringUtil.getBean(CacheService.class);
-        // 根据键从缓存中获取数据中心数据
-        String datacenters = cacheService.findById(application_datacenter_key);
-
-        LinkedHashSet<Long> datacenterIds = new LinkedHashSet<>();
-        // 检查从缓存获取的数据是否为空
-        if (StrUtil.isNotBlank(datacenters)) {
-            // 检查数据是否为JSON数组格式
-            if (JSONUtil.isTypeJSONArray(datacenters)) {
-                JSONUtil.toList(datacenters, String.class).stream().filter(ObjectUtils::isNotEmpty).map(Long::valueOf).forEach(datacenterIds::add);
-            } else {
-                datacenterIds.add(Long.valueOf(datacenters));
-            }
-        }
-        return datacenterIds.stream().collect(Collectors.toList());
     }
 
     public static String getApplicationId() {
@@ -220,17 +84,11 @@ public class ApplicationUtil implements AbsBean {
         return applicationInfo.getDatacenterId();
     }
 
+    public static List<ApplicationInfo> getAllOnlineApplicationInfos() {
+        return ApplicationContextHolder.checkAndGetOnline(null);
+    }
+
     public static List<String> getAllApplicationIds() {
-        List<String> list = new ArrayList<>();
-        Cache<String> cache = SpringUtil.getBean(CacheService.class).find(application_key);
-        if (cache != null && cache.getData() != null) {
-            List<String> ids = JSONUtil.toList(cache.getData(), String.class);
-            list.addAll(ids);
-        }
-        //List<String> list = new ArrayList<>();
-        //list.add(applicationId);
-        //list.addAll(nodeApplicationIds);
-        list = list.stream().filter(StrUtil::isNotBlank).distinct().collect(Collectors.toList());
-        return list;
+        return getAllOnlineApplicationInfos().stream().map(ApplicationInfo::getApplicationId).collect(Collectors.toList());
     }
 }

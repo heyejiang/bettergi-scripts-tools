@@ -3,8 +3,21 @@ package com.cloud_guest.task.util;
 import cn.hutool.extra.spring.SpringUtil;
 import com.cloud_guest.task.domain.TaskDef;
 import com.cloud_guest.task.domain.TaskInfo;
+import com.cronutils.model.Cron;
+import com.cronutils.model.CronType;
+import com.cronutils.model.definition.CronDefinitionBuilder;
+import com.cronutils.model.time.ExecutionTime;
+import com.cronutils.parser.CronParser;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
+
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.Date;
+import java.util.Optional;
 
 /**
  * @Author yan
@@ -14,6 +27,7 @@ import org.quartz.*;
 @Slf4j
 public class QuartzUtil {
     public static final String TASK_LOG_KEY = "[定时任务]";
+
     /**
      * 注册一个定时任务
      *
@@ -24,6 +38,7 @@ public class QuartzUtil {
         TaskInfo taskInfo = def.buildToTaskInfo();
         registerTask(taskInfo);
     }
+
     /**
      * 注册一个定时任务
      *
@@ -110,4 +125,20 @@ public class QuartzUtil {
         TriggerKey tk = new TriggerKey(name, group);
         scheduler.resumeTrigger(tk);
     }
+
+    @SneakyThrows
+    public static Long getNextIntervalMillis(String cron)  {
+        CronExpression expr = new CronExpression(cron);
+
+        Date now = new Date();
+        Date next1 = expr.getNextValidTimeAfter(now);
+        if (next1 == null) return null;
+
+        Date next2 = expr.getNextValidTimeAfter(next1);
+        if (next2 == null) return null;
+
+        long l = next2.getTime() - next1.getTime();
+        return Long.valueOf(l);   // 毫秒
+    }
+
 }
