@@ -33,6 +33,7 @@ public class QuartzConfig {
         List<TaskInfo> tasks = new ArrayList<>();
         tasks.add(new TaskDef(QuartzName.SECONDS_1, QuartzGroup.DEFAULT, Seconds1Job.class, CronTemplate.SECONDS).buildToTaskInfo());
         tasks.add(new TaskDef(QuartzName.SECONDS_3, QuartzGroup.DEFAULT, Seconds3Job.class, CronTemplate.SECONDS).buildToTaskInfo());
+        tasks.add(new TaskDef(QuartzName.SECONDS_10, QuartzGroup.DEFAULT, Seconds10Job.class, CronTemplate.SECONDS).buildToTaskInfo());
         tasks.add(new TaskDef(QuartzName.SECONDS_30, QuartzGroup.DEFAULT, Seconds30Job.class, CronTemplate.SECONDS).buildToTaskInfo());
         tasks.add(new TaskDef(QuartzName.MINUTE_1, QuartzGroup.DEFAULT, Minute1Job.class, CronTemplate.MINUTE).buildToTaskInfo());
         tasks.add(new TaskDef(QuartzName.CLOCK_0, QuartzGroup.DEFAULT, Clock0Job.class, CronTemplate.CLOCK).buildToTaskInfo());

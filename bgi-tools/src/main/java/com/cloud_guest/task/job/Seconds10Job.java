@@ -1,8 +1,10 @@
 package com.cloud_guest.task.job;
 
 import cn.hutool.extra.spring.SpringUtil;
+import com.cloud_guest.domain.ApplicationInfo;
 import com.cloud_guest.task.dstributed.DistributedJob;
 import com.cloud_guest.utils.ApplicationContextHolder;
+import com.cloud_guest.utils.ApplicationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
@@ -18,16 +20,8 @@ import java.util.concurrent.CompletableFuture;
  */
 @Slf4j
 @Component
-public class Seconds30Job extends DistributedJob {
+public class Seconds10Job extends DistributedJob {
     @Override
     protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
-
-        ThreadPoolTaskExecutor executor = SpringUtil.getBean(ThreadPoolTaskExecutor.class);
-        CompletableFuture.runAsync(() -> {
-            log.debug("清理离线");
-            ApplicationContextHolder.clearOutlineKeys();
-            log.debug("清理重启");
-            ApplicationContextHolder.clearRestartKeys();
-        }, executor);
     }
 }

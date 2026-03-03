@@ -17,8 +17,22 @@ public class ApplicationInfo {
     public Long datacenterId;
     //上报时间
     public Long timeStamp;
+    //用于日志分析
+    public Long timeout;
+    public String cronExpression;
+
+    public ApplicationInfo(String applicationId, Long datacenterId, Long timeStamp) {
+        this.applicationId = applicationId;
+        this.datacenterId = datacenterId;
+        this.timeStamp = timeStamp;
+    }
 
     public ApplicationInfo toReportedOnline() {
-        return new ApplicationInfo(applicationId, datacenterId, System.currentTimeMillis());
+        ApplicationInfo applicationInfo = new ApplicationInfo();
+        applicationInfo.setApplicationId(this.getApplicationId());
+        applicationInfo.setDatacenterId(this.getDatacenterId());
+        applicationInfo.setTimeout(this.getTimeout());
+        applicationInfo.setTimeStamp(System.currentTimeMillis());
+        return applicationInfo;
     }
 }

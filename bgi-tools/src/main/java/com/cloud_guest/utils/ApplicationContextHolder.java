@@ -250,8 +250,10 @@ public class ApplicationContextHolder {
                 Long timeStamp = applicationInfo.getTimeStamp();
                 long timeout = currentTimeMillis - timeStamp;
                 log.debug("applicationInfo:{},timeout:{},reportedOnlineTimeout:{}", applicationInfo, timeout, reportedOnlineTimeout);
-                if (timeout > reportedOnlineTimeout) {
-                    //超出上线报备时间间隔未报备上线
+                if (ObjectUtils.isNotEmpty(applicationInfo.getTimeout()) && timeout > applicationInfo.getTimeout()) {
+                    //标记需要处理
+                    outList.add(applicationInfo);
+                } else if (timeout > reportedOnlineTimeout) {
                     //标记需要处理
                     outList.add(applicationInfo);
                 } else {
@@ -261,13 +263,13 @@ public class ApplicationContextHolder {
 
             //ThreadPoolTaskExecutor executor = SpringUtil.getBean(ThreadPoolTaskExecutor.class);
             //CompletableFuture.runAsync(() -> {
-                log.debug("在线检查完成 - 正常在线：{}, 超时离线：{}",
-                        onlineList.size(), outList.size());
-                // 异步处理超时离线
-                for (ApplicationInfo applicationInfo : outList) {
-                    applicationInfo.setTimeStamp(null);
-                    bean.saveId(outlineApplicationKey, JSONUtil.toJsonStr(applicationInfo));
-                }
+            log.debug("在线检查完成 - 正常在线：{}, 超时离线：{}",
+                    onlineList.size(), outList.size());
+            // 异步处理超时离线
+            for (ApplicationInfo applicationInfo : outList) {
+                applicationInfo.setTimeStamp(null);
+                bean.saveId(outlineApplicationKey, JSONUtil.toJsonStr(applicationInfo));
+            }
             //}, executor);
 
             return onlineList;
