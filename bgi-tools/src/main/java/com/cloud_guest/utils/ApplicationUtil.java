@@ -1,11 +1,10 @@
 package com.cloud_guest.utils;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.IdUtil;
-import cn.hutool.core.util.StrUtil;
-import cn.hutool.extra.spring.SpringUtil;
-import cn.hutool.json.JSONUtil;
 import com.cloud_guest.aop.bean.AbsBean;
-import com.cloud_guest.domain.Cache;
+import com.cloud_guest.constants.KeyConstants;
+import com.cloud_guest.domain.ApplicationInfo;
 import com.cloud_guest.service.CacheService;
 import com.cloud_guest.utils.object.ObjectUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -14,8 +13,6 @@ import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -27,11 +24,11 @@ import java.util.stream.Collectors;
 @Slf4j
 @Component
 public class ApplicationUtil implements AbsBean {
-    public static String applicationId = null;
-    public static Long datacenterId = 0l;
+    private static ApplicationInfo applicationInfo = new ApplicationInfo(null, 0l, System.currentTimeMillis());
     //public static List<String> nodeApplicationIds = new ArrayList<>();
-    private static final String application_key = "ALL:application";
-    private static final String application_datacenter_key = "ALL:DATACENTER:application";
+    private static final String application_key = KeyConstants.all_application_key;
+    private static final String application_datacenter_key = KeyConstants.all_application_datacenter_key;
+    private static boolean initEnd = false;
     @Resource
     private CacheService cacheService;
 
@@ -40,85 +37,58 @@ public class ApplicationUtil implements AbsBean {
     public void init() {
         AbsBean.super.init();
         log.debug("==> 初始化ApplicationUtil <==");
-        //上线
-        String id = System.currentTimeMillis() + "@" + IdUtil.fastUUID();
-        applicationId = id;
-        //Cache<String> cache = cacheService.find(application_key);
-        //if (cache != null && cache.getData() != null) {
-        //    List<String> ids = JSONUtil.toList(cache.getData(), String.class);
-        //    //nodeApplicationIds = ids.stream().filter(e -> !ObjectUtils.equals(e, id)).distinct().collect(Collectors.toList());
-        //}
-
-        List<String> applicationIds = getAllApplicationIds();
-        applicationIds.add(id);
-        cacheService.save(application_key, JSONUtil.toJsonStr(applicationIds));
-
-
-        //初始化workId
-        String works = cacheService.findById(application_datacenter_key);
-        LinkedHashSet<Long> datacenterIds = new LinkedHashSet<>();
-        if (StrUtil.isNotBlank(works)) {
-            if (JSONUtil.isTypeJSONArray(works)) {
-                JSONUtil.toList(works, String.class).stream().map(Long::valueOf).forEach(datacenterIds::add);
-            } else {
-                datacenterIds.add(Long.valueOf(works));
-            }
-        }
-        datacenterId++;
-        if (datacenterIds.size() > 0) {
-            datacenterId += datacenterIds.stream().filter(ObjectUtils::isNotEmpty).mapToLong(Long::longValue).max().getAsLong();
-        }
-        datacenterIds.add(datacenterId);
-        cacheService.save(application_datacenter_key, JSONUtil.toJsonStr(datacenterIds));
+        initApplicationInfo();
+        initEnd = true;
     }
-
     @PreDestroy
     @Override
     public void destroy() {
         AbsBean.super.destroy();
         log.debug("==> 销毁ApplicationUtil <==");
         //下线
-        Cache<String> cache = cacheService.find(application_key);
-        List<String> list = new ArrayList<>();
-        if (cache != null && cache.getData() != null) {
-            List<String> ids = JSONUtil.toList(cache.getData(), String.class);
-            list = ids.stream().filter(e -> !ObjectUtils.equals(e, applicationId)).distinct().collect(Collectors.toList());
-        }
-        cacheService.save(application_key, JSONUtil.toJsonStr(list));
+        destroyApplicationInfo();
+    }
 
-        //下线datacenterId
-        String datacenters = cacheService.findById(application_datacenter_key);
-        LinkedHashSet<Long> datacenterIds = new LinkedHashSet<>();
-        if (StrUtil.isNotBlank(datacenters)) {
-            if (JSONUtil.isTypeJSONArray(datacenters)) {
-                JSONUtil.toList(datacenters, String.class).stream().filter(ObjectUtils::isNotEmpty).map(Long::valueOf).forEach(datacenterIds::add);
-            } else {
-                datacenterIds.add(Long.valueOf(datacenters));
-            }
+    public static void initApplicationInfo() {
+        List<ApplicationInfo> applicationInfos = ApplicationContextHolder.checkAndGetOnline(null);
+        //上线
+        String id = System.currentTimeMillis() + "@" + IdUtil.fastUUID();
+        applicationInfo.setApplicationId(id);
+        Long datacenterId = applicationInfo.getDatacenterId();
+        datacenterId++;
+        datacenterId += CollUtil.isEmpty(applicationInfos) ? 0l : applicationInfos.stream().map(ApplicationInfo::getDatacenterId).filter(ObjectUtils::isNotEmpty).mapToLong(Long::longValue).max().getAsLong();
+        applicationInfo.setDatacenterId(datacenterId);
+        ApplicationContextHolder.reportedOnline(applicationInfo.toReportedOnline());
+    }
+
+    /**
+     * 销毁应用ID和数据中心的公共方法
+     * 该方法调用重载的destroyApplicationIdAndDatacenterId方法，使用当前实例的applicationId和datacenterId作为参数
+     */
+    public static void destroyApplicationInfo() {
+        ApplicationContextHolder.clearReportedOnline(applicationInfo);
+    }
+
+    public static ApplicationInfo getApplicationInfo() {
+        if (!initEnd) {
+            return null;
         }
-        datacenterIds.remove(datacenterId);
-        cacheService.save(application_datacenter_key, JSONUtil.toJsonStr(datacenterIds));
+        return applicationInfo;
     }
 
     public static String getApplicationId() {
-        return applicationId;
+        return applicationInfo.getApplicationId();
     }
 
     public static Long getDatacenterId() {
-        return datacenterId;
+        return applicationInfo.getDatacenterId();
+    }
+
+    public static List<ApplicationInfo> getAllOnlineApplicationInfos() {
+        return ApplicationContextHolder.checkAndGetOnline(null);
     }
 
     public static List<String> getAllApplicationIds() {
-        List<String> list = new ArrayList<>();
-        Cache<String> cache = SpringUtil.getBean(CacheService.class).find(application_key);
-        if (cache != null && cache.getData() != null) {
-            List<String> ids = JSONUtil.toList(cache.getData(), String.class);
-            list.addAll(ids);
-        }
-        //List<String> list = new ArrayList<>();
-        //list.add(applicationId);
-        //list.addAll(nodeApplicationIds);
-        list = list.stream().filter(StrUtil::isNotBlank).distinct().collect(Collectors.toList());
-        return list;
+        return getAllOnlineApplicationInfos().stream().map(ApplicationInfo::getApplicationId).collect(Collectors.toList());
     }
 }

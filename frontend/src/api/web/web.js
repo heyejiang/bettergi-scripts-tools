@@ -1,5 +1,5 @@
 import {ElMessage, ElMessageBox} from "element-plus";
-import {getApplicationIds,  restartService} from "@api/sys/sys.js";
+import {getApplicationIds, restartService} from "@api/sys/sys.js";
 import router from "@router/router.js";
 
 /**
@@ -134,6 +134,17 @@ async function removeLocalToken() {
     const token_name = await getLocalTokenName()// 从环境变量获取令牌名称，如果不存在则使用默认名称'bgi_tools_token'// 从环境变量获取令牌名称，如果不存在则使用默认名称'bgi_tools_token'
     localStorage.removeItem(token_name) // 从localStorage中移除指定名称的令牌
 }
+async function removeLocalVersion() {
+    localStorage.removeItem("bgi-tools-version")
+}
+async function setLocalVersion(version) {
+    localStorage.setItem("bgi-tools-version", version)
+}
+
+async function getLocalVersion() {
+    return localStorage.getItem("bgi-tools-version")
+}
+
 
 /**
  * 从localStorage获取本地存储的令牌
@@ -160,5 +171,8 @@ export {
     setLocalToken,
     removeLocalToken,
     getLocalToken,
-    getLocalTokenName
+    getLocalTokenName,
+    setLocalVersion,
+    removeLocalVersion,
+    getLocalVersion
 }

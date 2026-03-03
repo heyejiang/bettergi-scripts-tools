@@ -1,6 +1,7 @@
 package com.cloud_guest.controller.view;
 import cn.hutool.extra.spring.SpringUtil;
 import com.cloud_guest.aop.log.SysLog;
+import com.cloud_guest.result.Result;
 import com.google.common.collect.Maps;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,30 +25,30 @@ import java.util.Map;
 @RequestMapping("/context/")
 public class ContextController {
 
-    @Value("${server.servlet.context-path:/}")
-    private String contextPath;
-
-    @SysLog
-    @Operation(summary = "获取CONTEXT_PATH")
-    @GetMapping(value = "context.js", produces = MediaType.TEXT_PLAIN_VALUE)
-    public String getContextJs() {
-        // 确保以 / 结尾
-        String normalized = contextPath.endsWith("/") ? contextPath : contextPath + "/";
-        return "window.CONTEXT_PATH = '" + normalized + "';";
-    }
-    @SysLog
-    @Operation(summary = "获取bgi-tools前缀")
-    @GetMapping(value = "bgi-tools/prefix", produces = MediaType.TEXT_PLAIN_VALUE)
-    public Map<String, String> getPrefix() {
-        Map<String, String> hashMap = Maps.newLinkedHashMap();
-        hashMap.put("API_PREFIX", contextPath);
-        return hashMap;
-    }
+    //@Value("${server.servlet.context-path:/}")
+    //private String contextPath;
+    //
+    //@SysLog
+    //@Operation(summary = "获取CONTEXT_PATH")
+    //@GetMapping(value = "context.js", produces = MediaType.TEXT_PLAIN_VALUE)
+    //public String getContextJs() {
+    //    // 确保以 / 结尾
+    //    String normalized = contextPath.endsWith("/") ? contextPath : contextPath + "/";
+    //    return "window.CONTEXT_PATH = '" + normalized + "';";
+    //}
+    //@SysLog
+    //@Operation(summary = "获取bgi-tools前缀")
+    //@GetMapping(value = "bgi-tools/prefix")
+    //public Map<String, String> getPrefix() {
+    //    Map<String, String> hashMap = Maps.newLinkedHashMap();
+    //    hashMap.put("API_PREFIX", contextPath);
+    //    return hashMap;
+    //}
     @SysLog
     @Operation(summary = "获取bgi-tools版本")
-    @GetMapping(value = "bgi-tools/version", produces = MediaType.TEXT_PLAIN_VALUE)
-    public String getBgiToolsVersion() {
+    @GetMapping(value = "bgi-tools/version")
+    public Result<String> getBgiToolsVersion() {
         Environment env = SpringUtil.getBean(Environment.class);
-        return env.getProperty("bgi-tools.version");
+        return Result.ok(env.getProperty("bgi-tools.version"));
     }
 }

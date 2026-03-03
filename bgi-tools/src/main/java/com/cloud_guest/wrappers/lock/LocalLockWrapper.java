@@ -32,7 +32,7 @@ public class LocalLockWrapper extends AbstractLockWrapper {
         return timeUnit;
     }
     public LocalLockWrapper(String lockKey) {
-        this(lockKey, DEFAULT_TIMEOUT, DEFAULT_TIME_UNIT);
+        this(lockKey, DEFAULT_WAIT_TIME, DEFAULT_TIME_UNIT);
     }
     public LocalLockWrapper(String lockKey, long timeout) {
         this(lockKey, timeout, DEFAULT_TIME_UNIT);

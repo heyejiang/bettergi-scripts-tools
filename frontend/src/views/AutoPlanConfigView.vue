@@ -811,7 +811,7 @@ const batchUpdate = () => {
             <el-autocomplete
                 v-model="uid"
                 :fetch-suggestions="querySearchAsync"
-                placeholder="点击可展开云端UID（若有）或 手动输入"
+                placeholder="设置UID/点击云端配置"
                 :trigger-on-focus="hasCloudUidList"
             :clearable="true"
             :show-loading="cloud.LoadingUidList"

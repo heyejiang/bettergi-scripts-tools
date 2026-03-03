@@ -37,6 +37,7 @@ public interface CacheService {
      * @return 如果成功移除则返回true，如果未找到对应元素或移除失败则返回false
      */
     boolean removeId(String key, String id);
+    boolean removeByKey(String key);
 
     /**
      * 保存ID的方法

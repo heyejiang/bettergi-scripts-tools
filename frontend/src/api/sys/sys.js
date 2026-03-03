@@ -10,7 +10,12 @@ async function getApplicationIds() {
     const response = await service.get('/jwt/application/applicationIds')
     return response;
 }
+async function getVersion() {
+    const response = await service.get('/context/bgi-tools/version').then(response => response)
+    return response.data
+}
 export {
     restartService,
-    getApplicationIds
+    getApplicationIds,
+    getVersion
 }
