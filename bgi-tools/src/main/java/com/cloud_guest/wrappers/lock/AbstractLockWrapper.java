@@ -20,7 +20,7 @@ public abstract class AbstractLockWrapper implements LockWrapper  {
     protected static final long DEFAULT_TIMEOUT = 10000L;
 
     // 锁的默认等待时间（毫秒）
-    protected static final long DEFAULT_WAIT_TIME = 500L;
+    protected static final long DEFAULT_WAIT_TIME = 800L;
     // 锁的默认时间单位
     protected static final TimeUnit DEFAULT_TIME_UNIT = TimeUnit.MILLISECONDS;
 

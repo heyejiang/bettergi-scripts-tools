@@ -215,7 +215,7 @@ public class ApplicationContextHolder {
         LockWrapper lock = LockUtil.getLock(outlineApplicationKey);
 
         // 尝试获取锁，最多等待1分钟
-        boolean tryLock = lock.tryLock();
+        boolean tryLock = lock.tryLock(800l, TimeUnit.MILLISECONDS);
         // 如果获取锁失败，抛出全局异常
         if (!tryLock) {
             throw new GlobalException("获取锁失败:" + outlineApplicationKey);
