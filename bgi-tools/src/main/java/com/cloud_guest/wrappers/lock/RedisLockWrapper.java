@@ -16,29 +16,34 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class RedisLockWrapper extends AbstractLockWrapper {
     private final String lockKey;
-    private final long timeout;
+    private final long waitTime;
+    private final long leaseTime;
     private final TimeUnit timeUnit;
     private RLock rLock;
     private volatile boolean locked = false;
 
     @Override
     public long getWaitTime() {
-        return timeout;
+        return waitTime;
     }
+
     @Override
     public TimeUnit getTimeUnit() {
         return timeUnit;
     }
+
     public RedisLockWrapper(String lockKey) {
-        this(lockKey, DEFAULT_WAIT_TIME, DEFAULT_TIME_UNIT);
+        this(lockKey, DEFAULT_WAIT_TIME, DEFAULT_LEASE_TIME, DEFAULT_TIME_UNIT);
     }
 
-    public RedisLockWrapper(String lockKey, long timeout) {
-        this(lockKey, timeout, DEFAULT_TIME_UNIT);
+    public RedisLockWrapper(String lockKey, long waitTime, long leaseTime) {
+        this(lockKey, waitTime, leaseTime, DEFAULT_TIME_UNIT);
     }
-    public RedisLockWrapper(String lockKey, long timeout, TimeUnit timeUnit) {
+
+    public RedisLockWrapper(String lockKey, long waitTime, long leaseTime, TimeUnit timeUnit) {
         this.lockKey = KeyConstants.redis_lock_key + lockKey;
-        this.timeout = timeout;
+        this.waitTime = waitTime;
+        this.leaseTime = leaseTime;
         this.timeUnit = timeUnit;
         try {
             RedissonClient redissonClient = SpringUtil.getBean(RedissonClient.class);
@@ -54,11 +59,11 @@ public class RedisLockWrapper extends AbstractLockWrapper {
     public boolean lock() {
         if (rLock == null) {
             log.warn("Redis锁不可用，降级到本地锁: {}", lockKey);
-            return new LocalLockWrapper(lockKey.replace(KeyConstants.redis_lock_key, KeyConstants.local_lock_key), timeout).lock();
+            return new LocalLockWrapper(lockKey.replace(KeyConstants.redis_lock_key, KeyConstants.local_lock_key), waitTime, leaseTime, timeUnit).lock();
         }
 
         try {
-            locked = rLock.tryLock(timeout, timeUnit);
+            locked = rLock.tryLock(waitTime, leaseTime, timeUnit);
             if (locked) {
                 log.debug("Redis分布式锁获取成功: {}", lockKey);
             } else {
@@ -77,7 +82,7 @@ public class RedisLockWrapper extends AbstractLockWrapper {
         if (rLock == null) {
             return new LocalLockWrapper(lockKey.replace(KeyConstants.redis_lock_key, KeyConstants.local_lock_key)).tryLock();
         }
-        return tryLock(timeout, timeUnit);
+        return tryLock(waitTime, timeUnit);
     }
 
     @Override
@@ -87,7 +92,26 @@ public class RedisLockWrapper extends AbstractLockWrapper {
         }
 
         try {
-            locked = rLock.tryLock(waitTime, timeout, timeUnit);
+            locked = rLock.tryLock(waitTime, this.leaseTime, timeUnit);
+            if (locked) {
+                log.debug("Redis分布式锁尝试获取成功: {}", lockKey);
+            }
+            return locked;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Redis分布式锁尝试获取被中断: {}", lockKey, e);
+            return false;
+        }
+    }
+
+    @Override
+    public boolean tryLock(long waitTime, long leaseTime, TimeUnit timeUnit) {
+        if (rLock == null) {
+            return new LocalLockWrapper(lockKey.replace(KeyConstants.redis_lock_key, KeyConstants.local_lock_key)).tryLock(waitTime, leaseTime, timeUnit);
+        }
+
+        try {
+            locked = rLock.tryLock(waitTime, leaseTime, timeUnit);
             if (locked) {
                 log.debug("Redis分布式锁尝试获取成功: {}", lockKey);
             }

@@ -31,6 +31,15 @@ public interface LockWrapper {
     boolean tryLock(long waitTime, TimeUnit timeUnit);
 
     /**
+     * 尝试获取锁 - 指定等待时间和租约时间
+     * @param waitTime
+     * @param leaseTime
+     * @param timeUnit
+     * @return
+     */
+    boolean tryLock(long waitTime,long leaseTime, TimeUnit timeUnit);
+
+    /**
      * 释放锁
      */
     void unlock();

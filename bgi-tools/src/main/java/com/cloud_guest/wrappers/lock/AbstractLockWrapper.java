@@ -23,7 +23,7 @@ public abstract class AbstractLockWrapper implements LockWrapper  {
     protected static final long DEFAULT_WAIT_TIME = 800L;
     // 锁的默认时间单位
     protected static final TimeUnit DEFAULT_TIME_UNIT = TimeUnit.MILLISECONDS;
-
+    protected static final long DEFAULT_LEASE_TIME= 1000L;
     @Override
     public long getWaitTime() {
         return DEFAULT_WAIT_TIME;

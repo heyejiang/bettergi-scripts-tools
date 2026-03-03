@@ -213,9 +213,9 @@ public class ApplicationContextHolder {
 
         // 获取指定键的锁对象
         LockWrapper lock = LockUtil.getLock(outlineApplicationKey);
-
+        boolean tryLock = lock.isLocked();
         // 尝试获取锁，最多等待1分钟
-        boolean tryLock = lock.tryLock(800l, TimeUnit.MILLISECONDS);
+        tryLock = lock.tryLock(800l, TimeUnit.MILLISECONDS);
         // 如果获取锁失败，抛出全局异常
         if (!tryLock) {
             throw new GlobalException("获取锁失败:" + outlineApplicationKey);
@@ -259,8 +259,8 @@ public class ApplicationContextHolder {
                 }
             }
 
-            ThreadPoolTaskExecutor executor = SpringUtil.getBean(ThreadPoolTaskExecutor.class);
-            CompletableFuture.runAsync(() -> {
+            //ThreadPoolTaskExecutor executor = SpringUtil.getBean(ThreadPoolTaskExecutor.class);
+            //CompletableFuture.runAsync(() -> {
                 log.debug("在线检查完成 - 正常在线：{}, 超时离线：{}",
                         onlineList.size(), outList.size());
                 // 异步处理超时离线
@@ -268,7 +268,7 @@ public class ApplicationContextHolder {
                     applicationInfo.setTimeStamp(null);
                     bean.saveId(outlineApplicationKey, JSONUtil.toJsonStr(applicationInfo));
                 }
-            }, executor);
+            //}, executor);
 
             return onlineList;
         } finally {

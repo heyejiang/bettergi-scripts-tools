@@ -53,21 +53,20 @@ public class LockUtil {
     /**
      * 获取锁 - 指定超时时间
      *
-     * @param lockKey 锁的key
-     * @param timeout 超时时间
+     * @param lockKey  锁的key
+     * @param waitTime  超时时间
+     * @param leaseTime  持有时间
      * @param timeUnit 时间单位
      * @return LockWrapper 锁包装器
      */
-    public static LockWrapper getLock(String lockKey, long timeout, TimeUnit timeUnit) {
+    public static LockWrapper getLock(String lockKey, long waitTime, long leaseTime, TimeUnit timeUnit) {
         if (StrUtil.isBlank(lockKey)) {
             throw new IllegalArgumentException("锁key不能为空");
         }
-
-        long timeoutMillis = timeUnit.toMillis(timeout);
         if (ModeUtil.isLocal()) {
-            return new LocalLockWrapper(lockKey, timeoutMillis);
+            return new LocalLockWrapper(lockKey, waitTime, leaseTime);
         } else if (ModeUtil.isRedis()) {
-            return new RedisLockWrapper(lockKey, timeoutMillis);
+            return new RedisLockWrapper(lockKey, waitTime, leaseTime, timeUnit);
         } else {
             throw new IllegalStateException("未识别的锁模式");
         }
@@ -86,7 +85,7 @@ public class LockUtil {
     /**
      * 尝试获取锁 - 指定等待时间
      *
-     * @param lockKey 锁的key
+     * @param lockKey  锁的key
      * @param waitTime 等待时间
      * @param timeUnit 时间单位
      * @return boolean 是否获取成功
@@ -109,12 +108,11 @@ public class LockUtil {
             localLock = new LocalLockWrapper(lockKey);
         } else if (ModeUtil.isRedis()) {
             localLock = new RedisLockWrapper(lockKey);
-        }else {
+        } else {
             throw new IllegalStateException("未识别的锁模式");
         }
         localLock.unlock();
     }
-
 
 
     public static void main(String[] args) {
@@ -140,7 +138,7 @@ public class LockUtil {
             }
         } else if (ModeUtil.isRedis()) {
             // Redis锁示例
-            LockWrapper redisLock = LockUtil.getLock(lockKey, 30, TimeUnit.SECONDS);
+            LockWrapper redisLock = LockUtil.getLock(lockKey, 30, 10, TimeUnit.SECONDS);
             if (redisLock.lock()) {
                 try {
                     System.out.println("Redis分布式锁获取成功，执行业务逻辑...");
