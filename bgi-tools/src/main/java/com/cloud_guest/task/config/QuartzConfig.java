@@ -7,10 +7,7 @@ import com.cloud_guest.task.domain.TaskInfo;
 import com.cloud_guest.task.enums.CronTemplate;
 import com.cloud_guest.task.enums.QuartzGroup;
 import com.cloud_guest.task.enums.QuartzName;
-import com.cloud_guest.task.job.Clock0Job;
-import com.cloud_guest.task.job.Minute1Job;
-import com.cloud_guest.task.job.Seconds3Job;
-import com.cloud_guest.task.job.Seconds30Job;
+import com.cloud_guest.task.job.*;
 import com.cloud_guest.task.util.QuartzUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
@@ -34,6 +31,7 @@ public class QuartzConfig {
 
     public void initTasks() {
         List<TaskInfo> tasks = new ArrayList<>();
+        tasks.add(new TaskDef(QuartzName.SECONDS_1, QuartzGroup.DEFAULT, Seconds1Job.class, CronTemplate.SECONDS).buildToTaskInfo());
         tasks.add(new TaskDef(QuartzName.SECONDS_3, QuartzGroup.DEFAULT, Seconds3Job.class, CronTemplate.SECONDS).buildToTaskInfo());
         tasks.add(new TaskDef(QuartzName.SECONDS_30, QuartzGroup.DEFAULT, Seconds30Job.class, CronTemplate.SECONDS).buildToTaskInfo());
         tasks.add(new TaskDef(QuartzName.MINUTE_1, QuartzGroup.DEFAULT, Minute1Job.class, CronTemplate.MINUTE).buildToTaskInfo());

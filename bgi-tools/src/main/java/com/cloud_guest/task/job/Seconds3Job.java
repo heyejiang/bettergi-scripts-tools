@@ -32,6 +32,10 @@ public class Seconds3Job extends DistributedJob {
                 ApplicationInfo reportedOnline = applicationInfo.toReportedOnline();
                 log.debug("上报在线:{}", reportedOnline);
                 ApplicationContextHolder.reportedOnline(reportedOnline);
+
+                // 按顺序执行，确保数据一致性
+                log.debug("检查在线");
+                ApplicationContextHolder.checkAndGetOnline(null);
             }
         }, executor);
 

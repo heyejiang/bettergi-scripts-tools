@@ -23,12 +23,10 @@ import java.util.concurrent.CompletableFuture;
 public class Seconds1Job extends DistributedJob {
     @Override
     protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
-        ThreadPoolTaskExecutor executor = SpringUtil.getBean(ThreadPoolTaskExecutor.class);
-        CompletableFuture.runAsync(() -> {
-            // 按顺序执行，确保数据一致性
-            log.debug("检查在线");
-            ApplicationContextHolder.checkAndGetOnline(null);
-        }, executor);
+        //ThreadPoolTaskExecutor executor = SpringUtil.getBean(ThreadPoolTaskExecutor.class);
+        //CompletableFuture.runAsync(() -> {
+        //
+        //}, executor);
 
     }
 }
