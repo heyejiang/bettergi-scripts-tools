@@ -30,18 +30,6 @@ public class Minute1Job extends DistributedJob {
     @Override
     protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
 
-        ThreadPoolTaskExecutor executor = SpringUtil.getBean(ThreadPoolTaskExecutor.class);
-        CompletableFuture.runAsync(() -> {
-            //上报在线
-            ApplicationInfo applicationInfo = ApplicationUtil.getApplicationInfo();
-            if (applicationInfo != null) {
-                //避免污染缓存数据
-                ApplicationInfo reportedOnline = applicationInfo.toReportedOnline();
-                log.debug("上报在线:{}", reportedOnline);
-                ApplicationContextHolder.reportedOnline(reportedOnline);
-            }
-        }, executor);
-
 
     }
 

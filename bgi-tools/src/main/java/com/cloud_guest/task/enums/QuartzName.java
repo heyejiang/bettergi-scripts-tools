@@ -9,6 +9,7 @@ public enum QuartzName {
      * 每秒
      */
     SECONDS_1,
+    SECONDS_3,
     SECONDS_30,
     /**
      * 每分钟
