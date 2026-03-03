@@ -25,13 +25,7 @@ import java.util.stream.Collectors;
 @Component
 public class ApplicationUtil implements AbsBean {
     private static ApplicationInfo applicationInfo = new ApplicationInfo(null, 0l, System.currentTimeMillis());
-    //public static List<String> nodeApplicationIds = new ArrayList<>();
-    private static final String application_key = KeyConstants.all_application_key;
-    private static final String application_datacenter_key = KeyConstants.all_application_datacenter_key;
     private static boolean initEnd = false;
-    @Resource
-    private CacheService cacheService;
-
     @PostConstruct
     @Override
     public void init() {
@@ -67,6 +61,12 @@ public class ApplicationUtil implements AbsBean {
      */
     public static void destroyApplicationInfo() {
         ApplicationContextHolder.clearReportedOnline(applicationInfo);
+    }
+    public static void setCronExpression(String cronExpression) {
+        applicationInfo.setCronExpression(cronExpression);
+    }
+    public static void setTimeout(Long timeout) {
+        applicationInfo.setTimeout(timeout);
     }
 
     public static ApplicationInfo getApplicationInfo() {

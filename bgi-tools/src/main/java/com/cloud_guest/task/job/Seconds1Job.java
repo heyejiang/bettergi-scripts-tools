@@ -46,9 +46,8 @@ public class Seconds1Job extends DistributedJob {
                 timeout += 20;
                 ApplicationContextHolder.setReportedOnlineTimeout(timeout);
                 ApplicationContextHolder.setTaskSettings(!taskSettings);
-                ApplicationInfo applicationInfo = ApplicationUtil.getApplicationInfo();
-                applicationInfo.setCronExpression(cronExpression);
-                applicationInfo.setTimeout(timeout);
+                ApplicationUtil.setCronExpression(cronExpression);
+                ApplicationUtil.setTimeout(timeout);
             }
         }
 
