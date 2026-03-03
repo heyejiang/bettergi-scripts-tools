@@ -32,7 +32,7 @@ public class Seconds30Job extends DistributedJob {
         Long timeout = null;
         boolean taskSettings = ApplicationContextHolder.getTaskSettings();
         if (!taskSettings) {
-            Optional<TaskInfo> first = QuartzConfig.TASKS.stream().filter(task -> ObjectUtils.equals(task.getJobClass(), Minute1Job.class)).findFirst();
+            Optional<TaskInfo> first = QuartzConfig.TASKS.stream().filter(task -> ObjectUtils.equals(task.getJobClass(), this.getClass())).findFirst();
             TaskInfo taskInfo = null;
             if (first.isPresent()) {
                 taskInfo = first.get();
@@ -50,9 +50,6 @@ public class Seconds30Job extends DistributedJob {
         }
         ThreadPoolTaskExecutor executor = SpringUtil.getBean(ThreadPoolTaskExecutor.class);
         CompletableFuture.runAsync(() -> {
-            // 按顺序执行，确保数据一致性
-            log.debug("检查在线");
-            ApplicationContextHolder.checkAndGetOnline(null);
             log.debug("清理离线");
             ApplicationContextHolder.clearOutlineKeys();
             log.debug("清理重启");
