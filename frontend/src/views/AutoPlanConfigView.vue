@@ -1165,8 +1165,16 @@ const batchUpdate = () => {
               </div>
               <div class="batch-item">
                 <label>指定刷取战场（可选）：</label>
-                <el-input-number min="1" max="3" v-model="batchJson.batch.autoStygianOnslaught.bossNum"
-                       placeholder="队伍1"/>
+                <select v-model="batchJson.batch.autoStygianOnslaught.bossNum">
+                  <option :value="undefined">请选择</option>
+                  <option
+                      v-for="type in [{key:'战场一',value:1},{key:'战场二',value:2},{key:'战场三',value:3}] "
+                      :key="type.key"
+                      :value="type.value"
+                  >
+                    {{ type.key }}
+                  </option>
+                </select>
               </div>
             </div>
           </div>
@@ -1447,19 +1455,6 @@ const batchUpdate = () => {
               </div>
             </div>
             <div class="stygianOnslaught-section" v-if="config.runType === runTypes[2]">
-              <div class="form-group stygianOnslaught"
-                   v-if="config.selectedType&&!excludeDomainTypes.includes(config.selectedType)">
-                <label>挑战第几个BOSS</label>
-                <el-button
-                    size="small"
-                    :disabled="!config.showDaysButton"
-                    @click="specifyDate(config)"
-                >
-                  {{ config.showDaysButton ? '启用' : '已启用' }}
-                </el-button>
-                <span style="color: red;">默认包含周日</span>
-              </div>
-
               <div class="form-group stygianOnslaught">
                 <label>队伍名称（可选）：</label>
                 <input class="limited-input" v-model="config.autoStygianOnslaught.friendshipTeam"
