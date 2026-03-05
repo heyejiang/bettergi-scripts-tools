@@ -70,6 +70,7 @@ const hasCloudUidList = computed(() => {
 const handleUidSelect = (item) => {
   uid.value = item
   ElMessage.success(`已选择云端 UID：${item}`)
+  findDomains()
 }
 // 配置列表 → 核心数据结构改为 array
 const configs = ref([])
