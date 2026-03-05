@@ -1004,6 +1004,41 @@ const batchUpdate = () => {
             </div>
           </div>
         </el-dialog>
+        <el-dialog
+            v-if="currentConfig"
+            v-model="currentConfig.showPhysicalDialogFromStygianOnslaught"
+            title="调整树脂使用顺序与启用状态"
+            width="520px"
+            direction="rtl"
+            :close-on-click-modal="false"
+        >
+          <div class="dialog-content">
+            <div class="selector-title">拖拽调整顺序</div>
+            <draggable
+                v-if="currentConfig"
+                v-model="currentConfig.autoStygianOnslaught.physical"
+                item-key="name"
+                handle=".draggable-item"
+                @end="updatePhysicalOrder(currentConfig)"
+            >
+              <template #item="{ element }">
+                <div class="draggable-item">
+                  <span class="drag-handle">☰</span>
+                  <span class="physical-name">{{ element.name }}</span>
+                  <el-input-number class="physical-count" v-model="element.count" min="0" placeholder="运行次数"></el-input-number>
+                  <el-switch
+                      v-model="element.open"
+                      @change="updatePhysicalOrder(currentConfig)"
+                  />
+                </div>
+              </template>
+            </draggable>
+
+            <div class="dialog-actions" style="margin-top: 24px; text-align: right;">
+              <el-button @click="currentConfig.showPhysicalDialogFromStygianOnslaught = false">关闭</el-button>
+            </div>
+          </div>
+        </el-dialog>
         <!-- 主内容区保持原样，只在最外层加一个抽屉 -->
         <el-drawer
             v-model="showResultDrawer"
