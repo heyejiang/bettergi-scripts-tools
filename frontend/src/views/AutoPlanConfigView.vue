@@ -479,8 +479,13 @@ const getFinalConfigs = () => {
     };
     if (c.runType === runTypesDefault()[0]) {
       json.autoLeyLineOutcrop = undefined
+      json.autoStygianOnslaught = undefined
     } else if (c.runType === runTypesDefault()[1]) {
       json.autoFight = undefined
+      json.autoStygianOnslaught = undefined
+    } else if (c.runType === runTypesDefault()[2]) {
+      json.autoFight = undefined
+      json.autoLeyLineOutcrop = undefined
     } else {
       /*      ElMessage.error("请选择类型！")
             throw new Error("请选择类型！")*/
