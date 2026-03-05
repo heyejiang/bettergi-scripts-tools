@@ -1,7 +1,14 @@
 <script setup>
 import {ref, computed, watch, watchEffect, onMounted, nextTick} from 'vue'
 import {ElMessage, ElMessageBox} from "element-plus";
-import {getBaseCountryJsonAll, getBaseJsonAll, getUidJson, postUidPlan, removeUidList,getAllUid} from "@api/auto_plan/autoPlan";
+import {
+  getBaseCountryJsonAll,
+  getBaseJsonAll,
+  getUidJson,
+  postUidPlan,
+  removeUidList,
+  getAllUid
+} from "@api/auto_plan/autoPlan";
 import {CopyToClipboard} from "@utils/local.js";
 import {
   countryListDefault,
@@ -15,29 +22,30 @@ import {
 import draggable from 'vuedraggable'
 import {debounce} from 'lodash-es';
 import {toHomePage} from "@api/web/web.js";
-const cloud=ref({
-  UidList:[],
+
+const cloud = ref({
+  UidList: [],
   LoadingUidList: false,
   lastRequestTime: 0,
   // 設定冷卻時間（單位：毫秒），例如每 1 秒最多請求 1 次
   cooldownMs: 1000,
 })
 const querySearchAsync = (queryString, cb) => {
-  if (queryString?.trim() === ""||!queryString) {
+  if (queryString?.trim() === "" || !queryString) {
     cb(cloud.value.UidList)
-  }else {
+  } else {
     cb([])
   }
 }
 const findAllUid = async () => {
   const res = await getAllUid()
-  cloud.value.UidList=res
+  cloud.value.UidList = res
   cloud.value.lastRequestTime = Date.now()
 }
 const initAllUid = async () => {
   try {
     await findAllUid()
-  }catch (e) {
+  } catch (e) {
   }
 }
 const loadCloudUidListIfNeeded = async () => {
@@ -167,7 +175,7 @@ const removeConfigToBackend = async () => {
   ids.push(uid.value)
   const uidStr = ids.join(',');
   await removeUidList(uidStr)
-  cloud.value.UidList= cloud.value.UidList.filter(item => item !== uid.value)
+  cloud.value.UidList = cloud.value.UidList.filter(item => item !== uid.value)
   return
 }
 const submitConfigToBackend = async () => {
@@ -278,12 +286,12 @@ const addConfig = (config = undefined) => {
         isNotification: false            // 是否通知
       },
       // 新添加幽境
-      autoStygianOnslaught:{
+      autoStygianOnslaught: {
         physical: [
-          {order: 0, name: "浓缩树脂", open: true,count:1},
-          {order: 1, name: "原粹树脂", open: true,count:1},
-          {order: 2, name: "须臾树脂", open: false,count:1},
-          {order: 3, name: "脆弱树脂", open: false,count:1}
+          {order: 0, name: "浓缩树脂", open: true, count: 1},
+          {order: 1, name: "原粹树脂", open: true, count: 1},
+          {order: 2, name: "须臾树脂", open: false, count: 1},
+          {order: 3, name: "脆弱树脂", open: false, count: 1}
         ],
         specifyResinUse: false,// 是否指定使用
         bossNum: 1,
@@ -550,14 +558,14 @@ const getFinalConfigsToKey = () => {
       key += (autoLeyLineOutcrop.isNotification || "")
       key += "|"
       key += (autoLeyLineOutcrop.timeout || "")
-    }else if (item.runType === runTypesDefault()[2]) {
-     let autoStygianOnslaught=item.autoStygianOnslaught
-      let physical=autoStygianOnslaught.physical
+    } else if (item.runType === runTypesDefault()[2]) {
+      let autoStygianOnslaught = item.autoStygianOnslaught
+      let physical = autoStygianOnslaught.physical
       key += (autoStygianOnslaught.bossNum || 1)
       key += "|"
       key += (autoStygianOnslaught.friendshipTeam || "")
       key += "|"
-      key += (autoStygianOnslaught.specifyResinUse?"1":"")
+      key += (autoStygianOnslaught.specifyResinUse ? "1" : "")
       key += "|"
       key += (physical.filter(p => p.open).map(p => p.name).join('/') || "")
       key += "|"
@@ -617,22 +625,44 @@ const specifyDate = async (item) => {
   }
 }
 const updatePhysicalOrder = (config) => {
-  config.autoFight.physical.forEach((item, index) => {
-    item.order = index;
-  });
-  // 至少保留一个启用
-  const enabledCount = config.autoFight.physical
-      .filter(item => item.open).length
+  if (config.runType === runTypesDefault()[1]) {
+    config.autoFight.physical.forEach((item, index) => {
+      item.order = index;
+    });
+    // 至少保留一个启用
+    const enabledCount = config.autoFight.physical
+        .filter(item => item.open).length
 
-  if (enabledCount === 0) {
-    ElMessage({
-      type: 'error',
-      message: '至少保留一个启用！'
-    })
-    const fallback = config.autoFight.physical.find(
-        item => item.name === '原粹树脂'
-    )
-    if (fallback) fallback.open = true
+    if (enabledCount === 0) {
+      ElMessage({
+        type: 'error',
+        message: '至少保留一个启用！'
+      })
+      const fallback = config.autoFight.physical.find(
+          item => item.name === '原粹树脂'
+      )
+      if (fallback) fallback.open = true
+    }
+  }else if (config.runType === runTypesDefault()[2]){
+    if (config.autoStygianOnslaught.specifyResinUse){
+      config.autoStygianOnslaught.physical.forEach((item, index) => {
+        item.order = index;
+      })
+      // 至少保留一个启用
+      const enabledCount = config.autoStygianOnslaught.physical
+          .filter(item => item.open).length
+
+      if (enabledCount === 0) {
+        ElMessage({
+          type: 'error',
+          message: '至少保留一个启用！'
+        })
+        const fallback = config.autoStygianOnslaught.physical.find(
+            item => item.name === '原粹树脂'
+        )
+        if (fallback) fallback.open = true
+      }
+    }
   }
 };
 const copyToClipboard = (text) => {
@@ -840,25 +870,25 @@ const batchUpdate = () => {
                 :fetch-suggestions="querySearchAsync"
                 placeholder="设置UID/点击云端配置"
                 :trigger-on-focus="hasCloudUidList"
-            :clearable="true"
-            :show-loading="cloud.LoadingUidList"
-            @select="handleUidSelect"
-            @focus="loadCloudUidListIfNeeded"
-            style="width: 180px;"
+                :clearable="true"
+                :show-loading="cloud.LoadingUidList"
+                @select="handleUidSelect"
+                @focus="loadCloudUidListIfNeeded"
+                style="width: 180px;"
             >
-            <template #default="{ item }">
-              <div class="uid-item">
-                <span class="uid-text">{{ item }}</span>
-<!--                <span v-if="item.lastSync" class="uid-time">最后同步: {{ item.lastSync }}</span>-->
-              </div>
-            </template>
+              <template #default="{ item }">
+                <div class="uid-item">
+                  <span class="uid-text">{{ item }}</span>
+                  <!--                <span v-if="item.lastSync" class="uid-time">最后同步: {{ item.lastSync }}</span>-->
+                </div>
+              </template>
 
             </el-autocomplete>
           </div>
 
-<!--          <div class="sort-control-card">
-            <input type="text" v-model="uid" placeholder="设置 UID" class="uid-input"/>
-          </div>-->
+          <!--          <div class="sort-control-card">
+                      <input type="text" v-model="uid" placeholder="设置 UID" class="uid-input"/>
+                    </div>-->
           <!-- 添加配置按钮 -->
           <button @click="addConfig()" class="btn btn-add">➕ 添加一条配置</button>
           <div class="sort-control-card">
