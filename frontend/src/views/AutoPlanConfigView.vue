@@ -2347,5 +2347,23 @@ h2 {
   border-color: #409eff;
   box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
 }
+.batch-item select {
+  width: 25%;
+  padding: 10px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  background-color: #fff;
+  transition: border-color 0.3s ease;
+  cursor: pointer;
+}
 
+.batch-item select:focus {
+  outline: none;
+  border-color: #409eff;
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+}
+
+.batch-item select:hover {
+  border-color: #409eff;
+}
 </style>
