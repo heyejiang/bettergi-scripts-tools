@@ -275,6 +275,18 @@ const addConfig = (config = undefined) => {
         useFragileResin: false,          // 使用脆弱树脂
         useTransientResin: false,        // 使用须臾树脂（须臾=Transient）
         isNotification: false            // 是否通知
+      },
+      // 新添加幽境
+      autoStygianOnslaught:{
+        physical: [
+          {order: 0, name: "浓缩树脂", open: true,count:1},
+          {order: 1, name: "原粹树脂", open: true,count:1},
+          {order: 2, name: "须臾树脂", open: false,count:1},
+          {order: 3, name: "脆弱树脂", open: false,count:1}
+        ],
+        specifyResinUse: false,// 是否指定使用
+        bossNum: 1,
+        fightTeamName: "",
       }
     };
   } else {
@@ -429,6 +441,7 @@ const getFinalConfigs = () => {
   return configs.value.map(c => {
     let autoFight = c.autoFight
     let autoLeyLineOutcrop = c.autoLeyLineOutcrop
+    let autoStygianOnslaught = c.autoStygianOnslaught
     if (autoFight.domainName) {
       const info = domainMap.value.get(autoFight.domainName);
       let index = 1
@@ -453,6 +466,7 @@ const getFinalConfigs = () => {
       selectedType: c.selectedType, // 新增字段
       autoFight: autoFight,
       autoLeyLineOutcrop: autoLeyLineOutcrop,
+      autoStygianOnslaught: autoStygianOnslaught,
     };
     if (c.runType === runTypesDefault()[0]) {
       json.autoLeyLineOutcrop = undefined
@@ -535,6 +549,18 @@ const getFinalConfigsToKey = () => {
       key += (autoLeyLineOutcrop.isNotification || "")
       key += "|"
       key += (autoLeyLineOutcrop.timeout || "")
+    }else if (item.runType === runTypesDefault()[2]) {
+     let autoStygianOnslaught=item.autoStygianOnslaught
+      let physical=autoStygianOnslaught.physical
+      key += (autoStygianOnslaught.bossNum || 1)
+      key += "|"
+      key += (autoStygianOnslaught.friendshipTeam || "")
+      key += "|"
+      key += (autoStygianOnslaught.specifyResinUse?"1":"")
+      key += "|"
+      key += (physical.filter(p => p.open).map(p => p.name).join('/') || "")
+      key += "|"
+      key += (physical.filter(p => p.open).map(p => p.count).join('/') || "")
     }
     key += ","
   })
@@ -627,10 +653,10 @@ const handleCurrentConfig = (config, type) => {
     config.showDaysDialog = true
   } else if (type === "hide-day") {
     config.showDaysDialog = false
-  } else if (type === "show-physical") {
-    config.showPhysicalDialog = true
-  } else if (type === "hide-physical") {
-    config.showPhysicalDialog = false
+  } else if (type === "show-physical-domain") {
+    config.showPhysicalDialogFromDomain = true
+  } else if (type === "hide-physical-domain") {
+    config.showPhysicalDialogFromDomain = false
   }
   updateCurrentConfig(config)
 }
@@ -910,7 +936,7 @@ const batchUpdate = () => {
         </el-dialog>
         <el-dialog
             v-if="currentConfig"
-            v-model="currentConfig.showPhysicalDialog"
+            v-model="currentConfig.showPhysicalDialogFromDomain"
             title="调整树脂使用顺序与启用状态"
             width="520px"
             direction="rtl"
@@ -938,7 +964,7 @@ const batchUpdate = () => {
             </draggable>
 
             <div class="dialog-actions" style="margin-top: 24px; text-align: right;">
-              <el-button @click="currentConfig.showPhysicalDialog = false">关闭</el-button>
+              <el-button @click="currentConfig.showPhysicalDialogFromDomain = false">关闭</el-button>
             </div>
           </div>
         </el-dialog>
@@ -1214,7 +1240,7 @@ const batchUpdate = () => {
                 <!-- 原 physical-display 改成 -->
                 <div
                     class="physical-display"
-                    @click="handleCurrentConfig(config,'show-physical')"
+                    @click="handleCurrentConfig(config,'show-physical-domain')"
                 >
                 <span>
                   {{
