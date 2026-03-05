@@ -294,7 +294,7 @@ const addConfig = (config = undefined) => {
           {order: 3, name: "脆弱树脂", open: false, count: 1}
         ],
         specifyResinUse: false,// 是否指定使用
-        bossNum: 1,
+        bossNum: undefined,
         fightTeamName: "",
       }
     };
@@ -566,15 +566,17 @@ const getFinalConfigsToKey = () => {
     } else if (item.runType === runTypesDefault()[2]) {
       let autoStygianOnslaught = item.autoStygianOnslaught
       let physical = autoStygianOnslaught.physical
-      key += (autoStygianOnslaught.bossNum || 1)
+      key += (autoStygianOnslaught.bossNum || "")
       key += "|"
       key += (autoStygianOnslaught.friendshipTeam || "")
       key += "|"
       key += (autoStygianOnslaught.specifyResinUse ? "1" : "")
-      key += "|"
-      key += (physical.filter(p => p.open).map(p => p.name).join('/') || "")
-      key += "|"
-      key += (physical.filter(p => p.open).map(p => p.count).join('/') || "")
+      if (autoStygianOnslaught.specifyResinUse) {
+        key += "|"
+        key += (physical.filter(p => p.open).map(p => p.name).join('/') || "")
+        key += "|"
+        key += (physical.filter(p => p.open).map(p => p.count).join('/') || "")
+      }
     }
     key += ","
   })
@@ -648,8 +650,8 @@ const updatePhysicalOrder = (config) => {
       )
       if (fallback) fallback.open = true
     }
-  }else if (config.runType === runTypesDefault()[2]){
-    if (config.autoStygianOnslaught.specifyResinUse){
+  } else if (config.runType === runTypesDefault()[2]) {
+    if (config.autoStygianOnslaught.specifyResinUse) {
       config.autoStygianOnslaught.physical.forEach((item, index) => {
         item.order = index;
       })
@@ -693,6 +695,10 @@ const handleCurrentConfig = (config, type) => {
     config.showPhysicalDialogFromDomain = true
   } else if (type === "hide-physical-domain") {
     config.showPhysicalDialogFromDomain = false
+  } else if (type === "show-physical-stygianOnslaught") {
+    config.showPhysicalDialogFromStygianOnslaught = true
+  } else if (type === "hide-physical-stygianOnslaught") {
+    config.showPhysicalDialogFromStygianOnslaught = false
   }
   updateCurrentConfig(config)
 }
@@ -718,6 +724,10 @@ const batchJson = ref({
       // useFragileResin: false,          // 使用脆弱树脂
       // useTransientResin: false,        // 使用须臾树脂（须臾=Transient）
       // isNotification: false            // 是否通知
+    },
+    autoStygianOnslaught:{
+      bossNum: undefined,
+      friendshipTeam: "",
     }
   }
 })
@@ -844,6 +854,7 @@ const handleConfigSelection = (configId, isSelected) => {
 const batchUpdate = () => {
   const batch = batchJson.value.batch;
   const autoLeyLineOutcrop = batch.autoLeyLineOutcrop;
+  const autoStygianOnslaught = batch.autoStygianOnslaught;
   const autoFight = batch.autoFight;
   configs.value.forEach(config => {
     if (batchJson.value.selectedConfigs.has(config.id)) {
@@ -854,6 +865,9 @@ const batchUpdate = () => {
         //地脉
         config.autoLeyLineOutcrop.team = autoLeyLineOutcrop.team
         config.autoLeyLineOutcrop.friendshipTeam = autoLeyLineOutcrop.friendshipTeam
+      } else if (config.runType === runTypesDefault()[2]) {
+        config.autoStygianOnslaught.friendshipTeam = autoStygianOnslaught.friendshipTeam
+        config.autoStygianOnslaught.bossNum = autoStygianOnslaught.bossNum
       }
     }
   })
@@ -1025,7 +1039,11 @@ const batchUpdate = () => {
                 <div class="draggable-item">
                   <span class="drag-handle">☰</span>
                   <span class="physical-name">{{ element.name }}</span>
-                  <el-input-number class="physical-count" v-model="element.count" min="0" placeholder="运行次数"></el-input-number>
+                  <div class="physical-count">
+                  <span class="physical-count-label">运行次数:</span>
+                  <el-input-number class="physical-count-number" width="10px" v-model="element.count" min="0"
+                                   placeholder="运行次数" style="width: 100px;"></el-input-number>
+                  </div>
                   <el-switch
                       v-model="element.open"
                       @change="updatePhysicalOrder(currentConfig)"
@@ -1133,6 +1151,21 @@ const batchUpdate = () => {
               <div class="batch-item">
                 <label>好感队伍名称（可选）：</label>
                 <input class="limited-input" v-model="batchJson.batch.autoLeyLineOutcrop.friendshipTeam"
+                       placeholder="队伍1"/>
+              </div>
+            </div>
+            <div class="batch-card" style="margin-top: 24px;">
+              <div class="card-header">
+                <label class="result-key">地脉配置</label>
+              </div>
+              <div class="batch-item">
+                <label>队伍名称（可选）：</label>
+                <input class="limited-input" v-model="batchJson.batch.autoStygianOnslaught.friendshipTeam"
+                       placeholder="队伍1 / 主C+副C+辅助"/>
+              </div>
+              <div class="batch-item">
+                <label>指定刷取战场（可选）：</label>
+                <el-input-number min="1" max="3" v-model="batchJson.batch.autoStygianOnslaught.bossNum"
                        placeholder="队伍1"/>
               </div>
             </div>
@@ -1411,6 +1444,65 @@ const batchUpdate = () => {
                     default="120"
                     placeholder="0 = 不限制"
                 />
+              </div>
+            </div>
+            <div class="stygianOnslaught-section" v-if="config.runType === runTypes[2]">
+              <div class="form-group stygianOnslaught"
+                   v-if="config.selectedType&&!excludeDomainTypes.includes(config.selectedType)">
+                <label>挑战第几个BOSS</label>
+                <el-button
+                    size="small"
+                    :disabled="!config.showDaysButton"
+                    @click="specifyDate(config)"
+                >
+                  {{ config.showDaysButton ? '启用' : '已启用' }}
+                </el-button>
+                <span style="color: red;">默认包含周日</span>
+              </div>
+
+              <div class="form-group stygianOnslaught">
+                <label>队伍名称（可选）：</label>
+                <input class="limited-input" v-model="config.autoStygianOnslaught.friendshipTeam"
+                       placeholder="队伍1 / 主C+副C+辅助"/>
+              </div>
+              <div class="form-group stygianOnslaught">
+              <label>指定刷取战场（可选）：</label>
+<!--              <el-input-number min="1" max="3" v-model="config.autoStygianOnslaught.bossNum"-->
+<!--                               placeholder="战场一,战场二,战场三"/>-->
+                <select v-model="config.autoStygianOnslaught.bossNum">
+                  <option :value="undefined">请选择</option>
+                  <option
+                      v-for="type in [{key:'战场一',value:1},{key:'战场二',value:2},{key:'战场三',value:3}] "
+                      :key="type.key"
+                      :value="type.value"
+                  >
+                    {{ type.key }}
+                  </option>
+                </select>
+              </div>
+              <div class="form-group stygianOnslaught">
+                <label>自定义树脂使用：</label>
+                <el-switch
+                    v-model="config.autoStygianOnslaught.specifyResinUse"
+                />
+              </div>
+              <!--          <hr/>-->
+              <div class="form-group stygianOnslaught">
+                <label>自定义树脂使用顺序：</label>
+                <!-- 原 physical-display 改成 -->
+                <div
+                    class="physical-display"
+                    @click="handleCurrentConfig(config,'show-physical-stygianOnslaught')"
+                >
+                <span>
+                  {{
+                    config.autoStygianOnslaught.physical
+                        .filter(p => p.open)
+                        .map(p => p.name + p.count + "次")
+                        .join(' → ') || '未选择'
+                  }}
+                </span>
+                </div>
               </div>
             </div>
             <div class="config-btn">
