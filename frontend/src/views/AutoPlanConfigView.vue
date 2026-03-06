@@ -1156,7 +1156,7 @@ const batchUpdate = () => {
             </div>
             <div class="batch-card" style="margin-top: 24px;">
               <div class="card-header">
-                <label class="result-key">地脉配置</label>
+                <label class="result-key">幽境配置</label>
               </div>
               <div class="batch-item">
                 <label>队伍名称（可选）：</label>
