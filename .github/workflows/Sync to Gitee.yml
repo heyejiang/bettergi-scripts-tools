@@ -1,56 +1,102 @@
+name: Sync to Gitee
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '**'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      # 假设你前面已有 check_changes 步骤，这里省略
+      # 如果没有，可去掉所有 if: steps.check_changes... 条件
+
       - name: 推送分支和标签到 Gitee
-        if: steps.check_changes.outputs.has_changes == 'true'
+        if: steps.check_changes.outputs.has_changes == 'true'  # 如果没有此 step，可删除此行
         env:
           GITEE_USERNAME: ${{ secrets.GITEE_USERNAME }}
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
-         echo "📦 开始推送到 Gitee..."
-         # 配置带认证的远程仓库
-         GITEE_URL="https://${GITEE_USERNAME}:${GITEE_TOKEN}@gitee.com/${GITEE_USERNAME}/bettergi-scripts-tools.git"
-         git remote remove gitee 2>/dev/null || true
-         git remote add gitee "$GITEE_URL"
-         echo "✓ Gitee remote 配置完成"
-         echo ""
-          # 推送主分支
-         echo "📦 推送主分支 (main)..."
-         git push -f gitee main:main
-         echo "✓ 主分支推送完成"
-         echo ""
-         # 推送所有标签
-         echo "🏷️ 推送所有标签..."
-         local_tag_count=$(git tag -l | wc -l)
-         git push -f gitee --tags
-         echo "✓ 标签推送完成（共 $local_tag_count 个）"
+          echo "📦 开始推送到 Gitee..."
+
+          # 带认证的 URL
+          GITEE_URL="https://${GITEE_USERNAME}:${GITEE_TOKEN}@gitee.com/${GITEE_USERNAME}/bettergi-scripts-tools.git"
+
+          # 移除旧 remote（防冲突）
+          git remote remove gitee 2>/dev/null || true
+
+          # 添加 remote
+          git remote add gitee "$GITEE_URL"
+          echo "✓ Gitee remote 配置完成"
+          echo ""
+
+          # 推送 main 分支（强制覆盖）
+          echo "📦 推送主分支 (main)..."
+          git push -f gitee main:main
+          echo "✓ 主分支推送完成"
+          echo ""
+
+          # 推送所有 tags（强制）
+          echo "🏷️ 推送所有标签..."
+          local_tag_count=$(git tag -l | wc -l)
+          git push -f gitee --tags
+          echo "✓ 标签推送完成（共 $local_tag_count 个）"
+
       - name: 同步 GitHub Releases 到 Gitee 发行版
-        if: steps.check_changes.outputs.has_changes == 'true'
+        if: steps.check_changes.outputs.has_changes == 'true'  # 可选条件
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
           GITEE_OWNER: ${{ secrets.GITEE_USERNAME }}
           GITEE_REPO: bettergi-scripts-tools
         run: |
-          # 仅在标签发布或手动触发时同步 Releases
-         if [[ "${{ github.ref }}" == refs/tags/* ]] || [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-           echo "📦 同步 GitHub Releases 到 Gitee..."
-            
-            # 下载 release2gitee 工具
-            curl -sSL https://github.com/hepengju/release2gitee/releases/latest/download/release2gitee_linux_amd64.tar.gz -o release2gitee.tar.gz
-            tar -xzf release2gitee.tar.gz
-            chmod +x release2gitee
-            
-            # 执行同步
-            ./release2gitee \
-              --github-owner "${{ github.repository_owner }}" \
-              --github-repo "${{ github.event.repository.name }}" \
-              --gitee-owner "$GITEE_OWNER" \
-              --gitee-repo "$GITEE_REPO" \
-              --gitee-token "$GITEE_TOKEN" \
-              --force
-            
-           echo "✓ GitHub Releases 已同步到 Gitee 发行版"
-         else
-           echo "ℹ️ 跳过 Releases 同步（非标签发布或手动触发）"
-         fi
+          # 只在打 tag 或手动触发时才同步 Releases
+          if [[ "${{ github.ref }}" == refs/tags/* ]] || [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "📦 同步 GitHub Releases 到 Gitee..."
+
+            # 因为 release2gitee 没有官方 linux binary，这里改用简单 gh + curl 方式同步基本信息
+            # （附件同步较复杂，如需完整附件可后续加逻辑或用其他工具）
+
+            # 获取最新/所有 releases（这里示例同步所有，实际可加 --limit 限制）
+            gh release list --json tagName,title,body --jq '.[] | {tag: .tagName, name: .title, body: .body}' | while read -r rel_json; do
+              tag=$(echo "$rel_json" | jq -r '.tag')
+              name=$(echo "$rel_json" | jq -r '.name')
+              body=$(echo "$rel_json" | jq -r '.body' | sed 's/"/\\"/g')  # 转义 "
+
+              echo "处理 Release: $tag"
+
+              # 检查 Gitee 是否存在
+              http_code=$(curl -s -o /dev/null -w "%{http_code}" \
+                -H "Authorization: token $GITEE_TOKEN" \
+                "https://gitee.com/api/v5/repos/$GITEE_OWNER/$GITEE_REPO/releases/tags/$tag")
+
+              payload="{\"tag_name\":\"$tag\",\"name\":\"${name:-$tag}\",\"body\":\"$body\",\"target_commitish\":\"$tag\"}"
+
+              if [ "$http_code" = "200" ]; then
+                echo "  已存在 → 更新"
+                curl -s -X PATCH \
+                  -H "Authorization: token $GITEE_TOKEN" \
+                  -H "Content-Type: application/json" \
+                  -d "$payload" \
+                  "https://gitee.com/api/v5/repos/$GITEE_OWNER/$GITEE_REPO/releases/tags/$tag"
+              else
+                echo "  不存在 → 创建"
+                curl -s -X POST \
+                  -H "Authorization: token $GITEE_TOKEN" \
+                  -H "Content-Type: application/json" \
+                  -d "$payload" \
+                  "https://gitee.com/api/v5/repos/$GITEE_OWNER/$GITEE_REPO/releases"
+              fi
+            done
+
+            echo "✓ Releases 基本信息同步完成（附件暂未自动同步，如需可补充下载上传逻辑）"
+          else
+            echo "ℹ️ 跳过 Releases 同步（非 tag 发布或手动触发）"
+          fi
 
       - name: 验证同步结果
         if: steps.check_changes.outputs.has_changes == 'true'
@@ -58,64 +104,60 @@
           GITEE_USERNAME: ${{ secrets.GITEE_USERNAME }}
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
-         echo "══════════════════════════════════════════"
-         echo "Gitee 同步验证"
-         echo "══════════════════════════════════════════"
-         echo ""
-          
-          # 构建带认证的 URL
+          echo "══════════════════════════════════════════"
+          echo "Gitee 同步验证"
+          echo "══════════════════════════════════════════"
+          echo ""
+
           GITEE_URL="https://${GITEE_USERNAME}:${GITEE_TOKEN}@gitee.com/${GITEE_USERNAME}/bettergi-scripts-tools.git"
-          
-          # 验证主分支
-         echo "检查主分支..."
-         if git ls-remote --heads "$GITEE_URL" main | grep -q 'refs/heads/main'; then
-           echo "✅ 主分支已同步"
-         else
-           echo "❌ 主分支同步失败"
+
+          echo "检查主分支..."
+          if git ls-remote --heads "$GITEE_URL" main | grep -q 'refs/heads/main'; then
+            echo "✅ 主分支已同步"
+          else
+            echo "❌ 主分支同步失败"
             exit 1
-         fi
-         echo ""
-          
-          # 验证标签数量
+          fi
+          echo ""
+
+          echo "标签数量对比:"
           local_tags=$(git tag -l | wc -l)
           remote_tags=$(git ls-remote --tags "$GITEE_URL" 2>/dev/null | grep -v '\^{}' | wc -l)
-          
-         echo "标签数量对比:"
-         echo "  本地：$local_tags"
-         echo "  远程：$remote_tags"
-          
-         if [ "$local_tags" -eq "$remote_tags" ]; then
-           echo "✅ 标签数量一致"
-         else
-           echo "⚠️ 标签数量不一致（可能需要几分钟同步延迟）"
-         fi
-         echo ""
-         echo "✓ 验证完成"
+          echo "  本地：$local_tags"
+          echo "  远程：$remote_tags"
+
+          if [ "$local_tags" -eq "$remote_tags" ]; then
+            echo "✅ 标签数量一致"
+          else
+            echo "⚠️ 标签数量不一致（Gitee 可能有延迟，或有额外 tag）"
+          fi
+          echo ""
+          echo "✓ 验证完成"
 
       - name: 输出总结
         if: always()
         run: |
           status_emoji="${{ job.status == 'success' && '✅' || '❌' }}"
           status_text="${{ job.status == 'success' && '成功' || '失败' }}"
-          
-         echo "======================================"
-         echo "$status_emoji Sync to Gitee $status_text"
-         echo "======================================"
-         echo "触发方式：${{ github.event_name }}"
-         echo "提交 SHA: ${{ github.sha }}"
-         echo "Gitee 地址：https://gitee.com/${{ secrets.GITEE_USERNAME }}/bettergi-scripts-tools"
-          
-         if [ "${{ steps.check_changes.outputs.has_changes }}" = "false" ]; then
-           echo "同步状态：⏭️ 已跳过（无变更）"
-         elif [ "${{ job.status }}" = "success" ]; then
-           echo "同步状态：✅ 已完成"
-         else
-           echo "同步状态：❌ 失败"
-           echo ""
-           echo "可能的原因:"
-           echo "  1. GITEE_TOKEN 权限不足或过期"
-           echo "  2. Gitee 仓库不存在或受保护"
-           echo "  3. 网络连接问题"
-           echo "  4. 用户名或 Token 配置错误"
-         fi
-         echo "======================================"
+
+          echo "======================================"
+          echo "$status_emoji Sync to Gitee $status_text"
+          echo "======================================"
+          echo "触发方式：${{ github.event_name }}"
+          echo "提交 SHA: ${{ github.sha }}"
+          echo "Gitee 地址：https://gitee.com/${{ secrets.GITEE_USERNAME }}/bettergi-scripts-tools"
+
+          if [ "${{ steps.check_changes.outputs.has_changes }}" = "false" ]; then
+            echo "同步状态：⏭️ 已跳过（无变更）"
+          elif [ "${{ job.status }}" = "success" ]; then
+            echo "同步状态：✅ 已完成"
+          else
+            echo "同步状态：❌ 失败"
+            echo ""
+            echo "可能的原因:"
+            echo "  1. GITEE_TOKEN 权限不足或过期"
+            echo "  2. Gitee 仓库不存在或受保护"
+            echo "  3. 网络连接问题"
+            echo "  4. 用户名或 Token 配置错误"
+          fi
+          echo "======================================"
