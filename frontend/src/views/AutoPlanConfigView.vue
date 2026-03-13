@@ -257,7 +257,7 @@ const addConfig = (config = undefined) => {
       // day: undefined,
       days: [],
       runType: runTypesDefault()[0],//先写死 预留地脉类型
-
+      enable: true,
       dayName: undefined,
       showDaysSelector: false,   // ← 新增
       showPhysicalSelector: false,   // ← 新增
@@ -397,7 +397,8 @@ function changShowDaysButton(config) {
   } else if (config.days && config.days.length <= 0) {
     config.dayName = undefined
   }
-  if (runTypesDefault[0] === config.runType && (!excludeDomainTypes.value.includes(config.selectedType)) && config.autoFight.sundaySelectedValue) {
+  const bool = runTypesDefault()[0] === config.runType && (!excludeDomainTypes.value.includes(config.selectedType)) && config.autoFight.sundaySelectedValue;
+  if (bool) {
     // 实时监听 days 与 asDaysMap.get(sundaySelectedValue) 是否相同
     const daysFromMap = asDaysMap.get(config.autoFight.sundaySelectedValue + "");
     if (daysFromMap && Array.isArray(daysFromMap)) {
@@ -418,7 +419,7 @@ watchEffect(
     () => configs.value,
     (newConfigs) => {
       newConfigs.forEach(config => {
-        if (runTypesDefault[0] === config.runType ) {
+        if (runTypesDefault()[0] === config.runType) {
           let domainName = config.autoFight?.domainName
           if (!domainName) {
             return
@@ -467,6 +468,7 @@ const getFinalConfigs = () => {
       days: c.days,
       dayName: c.dayName,
       runType: c.runType,
+      enable: c.enable,
       // daysName: c.daysName,
       // physical: c.physical,
       selectedType: c.selectedType, // 新增字段
@@ -719,6 +721,9 @@ const batchJson = ref({
   selectedConfigs: new Set(),
   batch: {
     show: false,
+    common: {
+      enable: true,
+    },
     autoFight: {
       partyName: "",
     },
@@ -879,9 +884,11 @@ const batchUpdate = () => {
         config.autoStygianOnslaught.fightTeamName = autoStygianOnslaught.fightTeamName
         config.autoStygianOnslaught.bossNum = autoStygianOnslaught.bossNum
       }
+      config.enable = batch.common.enable
     }
   })
   batchJson.value.batch.show = false
+  batchJson.value.batch.common.enable=true
 }
 
 </script>
@@ -927,10 +934,10 @@ const batchUpdate = () => {
                 @change="debouncedSort"
             />
           </div>
-          <button @click="submitConfigToBackend" class="btn btn-submit">同步到云端</button>
-          <button @click="findDomains" class="btn btn-submit">加载云端配置</button>
-          <button @click="removeConfigToBackend" class="btn danger">🗑️ 移除云端配置</button>
-          <button @click="removeConfigAll" class="btn danger">🗑️ 清除全部</button>
+          <button @click="submitConfigToBackend" class="btn btn-submit">☁️🚀同步到云端</button>
+          <button @click="findDomains" class="btn btn-submit">☁️🔄加载云端配置</button>
+          <button @click="removeConfigToBackend" class="btn danger">☁️🗑️移除云端配置</button>
+          <button @click="removeConfigAll" class="btn danger">🗑️清除全部</button>
 
         </div>
 
@@ -1140,6 +1147,18 @@ const batchUpdate = () => {
           <div class="drawer-content">
             <div class="batch-card" style="margin-top: 24px;">
               <div class="card-header">
+                <label class="result-key">通用配置</label>
+              </div>
+              <div class="batch-item">
+                <label>启用计划：</label>
+                <el-switch
+                    v-model="batchJson.batch.common.enable"
+                />
+                <span style="color: red;">是否启用</span>
+              </div>
+            </div>
+            <div class="batch-card" style="margin-top: 24px;">
+              <div class="card-header">
                 <label class="result-key">秘境配置</label>
               </div>
               <div class="batch-item">
@@ -1218,6 +1237,13 @@ const batchUpdate = () => {
                        max="99999999"
                        placeholder="建议 1~10"/>
                 <span style="color: red;">数值高的优先执行</span>
+              </div>
+              <div class="form-group common">
+                <label>是否启用：</label>
+                <el-switch
+                    v-model="config.enable"
+                />
+                <span style="color: red;">是否启用本计划</span>
               </div>
               <div class="form-group common">
                 <label>执行日：</label>
